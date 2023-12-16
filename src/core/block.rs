@@ -12,18 +12,14 @@ pub enum BlockType {
     Send,
     Receive,
     Epoch,
-    Legacy(String),
-    Null
+    Legacy(String)
 }
 impl BlockType {
     pub fn is_state(&self) -> bool {
-        !(self.is_legacy() || self.is_null())
+        !self.is_legacy()
     }
     pub fn is_legacy(&self) -> bool {
         matches!(self, BlockType::Legacy(_))
-    }
-    pub fn is_null(&self) -> bool {
-        matches!(self, BlockType::Null)
     }
 
     /// Only to be used for `state` blocks!
@@ -44,14 +40,12 @@ impl Display for BlockType {
             BlockType::Send => "send".into(),
             BlockType::Receive => "receive".into(),
             BlockType::Epoch => "epoch".into(),
-            BlockType::Legacy(_type) => _type.into(),
-            BlockType::Null => "null".into()
+            BlockType::Legacy(_type) => _type.into()
         };
         write!(f, "{}", as_str)
     }
 }
 
-// https://docs.nano.org/commands/rpc-protocol/#process
 #[derive(Debug, Clone, Zeroize)]
 pub struct Block {
     pub block_type: BlockType,
@@ -64,24 +58,6 @@ pub struct Block {
     pub work: [u8; 8]
 }
 impl Block {
-    pub fn null(account: &Account) -> Block {
-        Block {
-            block_type: BlockType::Null,
-            account: account.clone(),
-            previous: [0; 32],
-            representative: account.clone(),
-            balance: 0,
-            link: [0; 32],
-            signature: [0; 64].try_into().unwrap(),
-            work: [0; 8]
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.block_type == BlockType::Null
-    }
-
-
     pub fn follows_epoch_rules(&self, previous: &Block) -> bool {
         self.balance == previous.balance &&
         self.representative == previous.representative
@@ -119,9 +95,6 @@ impl Block {
     }
 
     pub fn has_valid_signature(&self) -> bool {
-        if self.is_null() {
-            return true
-        }
         let signer = match self.block_type == BlockType::Epoch {
             true => get_genesis_account(),
             false => self.account.to_owned()
@@ -161,7 +134,7 @@ mod tests {
         let account = key.to_account();
         let representative = Key::from_seed(&seed, 1).to_account();
 
-        let block = Block {
+        Block {
             block_type: BlockType::Send,
             account,
             previous: [127; 32],
@@ -171,10 +144,7 @@ mod tests {
 
             signature: [0; 64].try_into().unwrap(),
             work: [0; 8]
-        };
-
-        assert!(!block.is_null());
-        block
+        }
     }
 
     #[test]

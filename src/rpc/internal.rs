@@ -1,61 +1,13 @@
+use super::error::RpcError;
 use serde_json as json;
+use reqwest::{Client, RequestBuilder};
 use json::{
     Value as JsonValue,
-    Error as JsonError,
     Map
 };
-use reqwest::Error as ReqwestError;
-use reqwest::{Client, RequestBuilder};
-use thiserror::Error;
-use std::num::ParseIntError;
-use std::convert::From;
-use crate::core::NanoError;
-use hex::FromHexError;
 
 pub(super) fn trim_json(value: String) -> String {
     value.trim_matches('\"').into()
-}
-
-#[derive(Debug, Error)]
-pub enum RpcError {
-    #[error(transparent)]
-    ReqwestError(#[from] ReqwestError),
-    #[error(transparent)]
-    JsonError(#[from] JsonError),
-    #[error("parsing error: {0}")]
-    ParseError(String),
-    #[error("data was invalid")]
-    InvalidData,
-    #[error("RPC returned error: {0}")]
-    ReturnedError(String),
-    #[error("no rpc could be found for this action")]
-    NoRPCs,
-    #[error("this action could not be completed")]
-    CommandFailed,
-    #[error("cannot publish block of 'legacy' type")]
-    LegacyBlockType
-}
-impl RpcError {
-    pub fn from_option<T>(option: Option<T>) -> Result<T, RpcError> {
-        option.ok_or(
-            RpcError::ParseError("Option<T> returned empty".into())
-        )
-    }
-}
-impl From<ParseIntError> for RpcError {
-    fn from(value: ParseIntError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
-}
-impl From<NanoError> for RpcError {
-    fn from(value: NanoError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
-}
-impl From<FromHexError> for RpcError {
-    fn from(value: FromHexError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
 }
 
 #[derive(Debug)]
@@ -152,6 +104,7 @@ impl InternalRpc {
     pub async fn work_generate(&self, hash: String, arguments: Map<String, JsonValue>) -> Result<JsonValue, RpcError> {
         let mut arguments = arguments;
         arguments.insert("hash".into(), hash.into());
+        arguments.insert("use_peers".into(), "true".into());
         self.command("work_generate".into(), arguments).await
     }
 }

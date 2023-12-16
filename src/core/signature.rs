@@ -4,7 +4,6 @@ use curve25519_dalek::{EdwardsPoint, Scalar as RawScalar};
 
 pub use super::nanopy::{sign_message, is_valid_signature};
 pub mod hazmat {
-    //! **DANGEROUS! Don't use unless you know what you're doing.**
     pub use crate::core::nanopy::sign_message_with_r;
 }
 

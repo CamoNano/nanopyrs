@@ -52,7 +52,11 @@ pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoEr
     try_compressed_from_slice(key)
 }
 
-pub(crate) fn get_account_private_key(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
+pub fn get_account_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
+    blake2b256(&[seed.as_slice(), &i.to_be_bytes()].concat())
+}
+
+pub fn get_account_private_key(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
     blake2b_scalar(get_account_seed(master_seed, i).as_ref())
 }
 
@@ -136,10 +140,6 @@ pub fn is_valid_signature(message: &[u8], signature: Signature, public_key: &Acc
 }
 
 pub(crate) fn hash_block(block: &Block) -> [u8; 32] {
-    if block.is_null() {
-        return [0; 32]
-    }
-
     *blake2b256(&[
         [0; 31].as_slice(), &[6],
         block.account.compressed.as_bytes(),

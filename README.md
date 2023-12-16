@@ -20,6 +20,10 @@ Currently, only the following commands are officially supported: `account_balanc
 
 Maybe, but the name "nanors" was taken :(
 
+## Licensing
+
+This crate is open source and licensed under the MIT license. See the `LICENSE` file for more details.
+
 ## Credits
 
 Heavily inspired by, and partially derived from, the [nanopy](https://github.com/npy0/nanopy) library, written by npy0.

@@ -20,5 +20,5 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-    - name: Run tests no rpc
+    - name: Run tests (rpc disabled)
       run: cargo test --verbose --no-default-features

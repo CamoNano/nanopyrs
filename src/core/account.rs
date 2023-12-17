@@ -6,6 +6,7 @@ use super::nanopy::{
 use super::{SecretBytes, Scalar, Block, Signature};
 use auto_ops::{impl_op_ex, impl_op_ex_commutative};
 use std::fmt::Display;
+use std::hash::Hash;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use curve25519_dalek::{
     Scalar as RawScalar,
@@ -20,7 +21,7 @@ use serde_json::Value as JsonValue;
 
 
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Key {
     private: Scalar
 }
@@ -74,7 +75,7 @@ impl_op_ex_commutative!(* |a: &Key, b: &EdwardsPoint| -> Account {
 
 
 
-#[derive(Debug, Clone, PartialEq, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Account {
     pub account: String,
     pub compressed: CompressedEdwardsY,
@@ -206,6 +207,12 @@ impl From<&Account> for JsonValue {
 impl Display for Account {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.account)
+    }
+}
+impl Hash for Account {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.account.hash(state);
+        self.compressed.hash(state);
     }
 }
 

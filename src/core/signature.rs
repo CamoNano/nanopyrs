@@ -7,7 +7,7 @@ pub mod hazmat {
     pub use crate::core::nanopy::sign_message_with_r;
 }
 
-#[derive(Debug, Clone, Copy, Zeroize)]
+#[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq)]
 pub struct Signature {
     pub r: EdwardsPoint,
     pub s: RawScalar

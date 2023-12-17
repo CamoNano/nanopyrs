@@ -25,7 +25,7 @@ macro_rules! scalar {
 
 
 
-#[derive(Zeroize, ZeroizeOnDrop)]
+#[derive(Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct SecretBytes<const T: usize> {
     bytes: Box<[u8; T]>
 }
@@ -67,7 +67,7 @@ impl<const T: usize> Debug for SecretBytes<T> {
 
 
 
-#[derive(Zeroize, ZeroizeOnDrop)]
+#[derive(Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Scalar {
     scalar: Box<RawScalar>
 }

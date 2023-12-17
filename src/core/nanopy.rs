@@ -100,8 +100,6 @@ pub fn check_work(previous_hash: [u8; 32], difficulty: [u8; 8], work: [u8; 8]) -
 }
 
 /// **DANGEROUS! Don't use unless you know what you're doing.**
-///
-/// This function does not produce identical signatures to nanopy.
 pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Signature {
     let public_key = private_key.to_account().compressed.to_bytes();
 
@@ -121,6 +119,7 @@ pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Sig
     }
 }
 
+/// This function does not produce identical signatures to nanopy.
 pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
     let r = blake2b_scalar(
         &[private_key.as_scalar().as_bytes(), message].concat()

@@ -121,7 +121,7 @@ pub mod util {
 }
 use util::*;
 
-/// See Nano's [RPC documentation](https://docs.nano.org/commands/rpc-protocol/) for details
+/// See Nano's [RPC documentation](https://docs.nano.org/commands/rpc-protocol/) for details.
 #[derive(Debug, Clone)]
 pub struct Rpc {
     internal: InternalRpc
@@ -150,6 +150,7 @@ impl Rpc {
         Ok(balances)
     }
 
+    /// Will stop at first legacy block
     pub async fn account_history(&self, account: &Account, count: usize, head: Option<[u8; 32]>) -> Result<Vec<Block>, RpcError> {
         let mut arguments = Map::new();
         arguments.insert("raw".into(), "true".into());
@@ -164,6 +165,10 @@ impl Rpc {
 
         let mut blocks: Vec<Block> = vec!();
         for block in json_blocks {
+            if trim_json(block["type"].to_string()) != "state" {
+                break;
+            }
+
             let block = block_from_history_json(block)?;
 
             if &block.account != account {
@@ -183,6 +188,8 @@ impl Rpc {
             if !newest_block.has_valid_signature() {
                 return Err(RpcError::InvalidData);
             }
+        } else if !json_blocks.is_empty() {
+            return Err(RpcError::InvalidData);
         }
         Ok(blocks)
     }
@@ -302,16 +309,22 @@ impl Rpc {
         Ok(representatives)
     }
 
-    pub async fn block_info(&self, hash: [u8; 32]) -> Result<Block, RpcError> {
+    /// Legacy blocks will return `None`
+    pub async fn block_info(&self, hash: [u8; 32]) -> Result<Option<Block>, RpcError> {
         let raw_json = self.internal.block_info(hex::encode(hash)).await?;
+        if trim_json(raw_json["type"].to_string()) != "state" {
+            return Ok(None)
+        }
+
         let block = block_from_info_json(&raw_json)?;
         if !block.has_valid_signature() {
             return Err(RpcError::InvalidData)
         }
-        Ok(block)
+        Ok(Some(block))
     }
 
-    pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Result<Vec<Block>, RpcError> {
+    /// Legacy blocks will return `None`
+    pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Result<Vec<Option<Block>>, RpcError> {
         if hashes.is_empty() {
             return Ok(vec!());
         }
@@ -322,13 +335,19 @@ impl Rpc {
         let raw_json = self.internal.blocks_info(&hashes).await?["blocks"].clone();
         let mut blocks = vec!();
         for hash in hashes {
+            if trim_json(raw_json[&hash]["type"].to_string()) != "state" {
+                blocks.push(None)
+            }
+
             let block = block_from_info_json(&raw_json[hash])?;
             if !block.has_valid_signature() {
                 return Err(RpcError::InvalidData);
             }
-            blocks.push(block)
+            blocks.push(Some(block))
         }
-        balances_sanity_check(&blocks)?;
+        let _blocks: Vec<Block> = blocks
+            .iter().flatten().cloned().collect();
+        balances_sanity_check(&_blocks)?;
         Ok(blocks)
     }
 

@@ -16,3 +16,17 @@ pub const STEALTH_PREFIX: &str = "stealth_";
 pub fn get_genesis_account() -> Account {
     Account::try_from("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3").unwrap()
 }
+
+// https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103
+pub mod epoch_signers {
+    use crate::Account;
+    use super::*;
+
+    pub fn get_v1_epoch_signer() -> Account {
+        get_genesis_account()
+    }
+
+    pub fn get_v2_epoch_signer() -> Account {
+        Account::try_from("nano_3qb6o6i1tkzr6jwr5s7eehfxwg9x6eemitdinbpi7u8bjjwsgqfj4wzser3x").unwrap()
+    }
+}

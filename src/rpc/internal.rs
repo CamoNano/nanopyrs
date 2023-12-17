@@ -35,7 +35,8 @@ impl InternalRpc {
         let mut arguments = arguments;
         arguments.insert("action".into(), command.clone().into());
 
-        let raw_json = self._raw_request(JsonValue::Object(arguments)).await?;
+        let raw_json = self._raw_request(JsonValue::Object(arguments)).await;
+        let raw_json = raw_json?;
         if !raw_json["error"].is_null() {
             return Err(RpcError::ReturnedError(trim_json(raw_json["error"].to_string())))
         }

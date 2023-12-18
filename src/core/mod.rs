@@ -15,11 +15,8 @@ pub use account::{Key, Account};
 pub use signature::Signature;
 pub use block::{Block, BlockType};
 
-pub use curve25519_dalek::edwards::EdwardsPoint;
-pub use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
 
-
-use curve25519_dalek::edwards::CompressedEdwardsY;
+use curve25519_dalek::edwards::{EdwardsPoint, CompressedEdwardsY};
 
 pub(crate) fn try_compressed_from_slice(key: &[u8]) -> Result<CompressedEdwardsY, NanoError> {
     CompressedEdwardsY::from_slice(key)

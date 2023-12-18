@@ -16,9 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build
+    - name: Build (features = default)
       run: cargo build --verbose
-    - name: Run tests
+    - name: Build (features = none)
+      run: cargo build --verbose --no-default-features
+    - name: Run tests (features = default)
       run: cargo test --verbose
-    - name: Run tests (rpc disabled)
-      run: cargo test --verbose --no-default-features

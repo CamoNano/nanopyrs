@@ -1,5 +1,5 @@
 use crate::{secret, version_bits};
-use crate::core::{
+use crate::{
     base32,
     NanoError, SecretBytes, Scalar, Key, Account,
     try_compressed_from_slice, try_point_from_slice,

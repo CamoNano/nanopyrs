@@ -1,4 +1,4 @@
-use crate::core::NanoError;
+use crate::NanoError;
 use serde_json as json;
 use json::Error as JsonError;
 use reqwest::Error as ReqwestError;

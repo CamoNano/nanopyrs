@@ -2,9 +2,9 @@ use super::{NanoError, Key, Account, try_point_from_slice};
 use zeroize::Zeroize;
 use curve25519_dalek::{EdwardsPoint, Scalar as RawScalar};
 
-pub use super::nanopy::{sign_message, is_valid_signature};
+pub use crate::nanopy::{sign_message, is_valid_signature};
 pub mod hazmat {
-    pub use crate::core::nanopy::sign_message_with_r;
+    pub use crate::nanopy::sign_message_with_r;
 }
 
 #[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq)]

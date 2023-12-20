@@ -2,7 +2,7 @@ mod version;
 mod v0;
 
 use crate::version_bits;
-use crate::core::{
+use crate::{
     base32,
     NanoError, Key, Account, Signature, SecretBytes,
     constants::{STEALTH_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
@@ -371,7 +371,7 @@ macro_rules! stealth_address_tests {
 pub(crate) use stealth_address_tests;
 
 #[cfg(test)]
-use crate::core::constants::HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION;
+use crate::constants::HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION;
 stealth_address_tests!(
     StealthKeys,
     versions!(HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION),

@@ -1,4 +1,4 @@
-use crate::core::{Account, Block, BlockType, block::check_work};
+use crate::{Account, Block, BlockType, block::check_work};
 use super::internal::{InternalRpc, trim_json};
 use super::error::RpcError;
 

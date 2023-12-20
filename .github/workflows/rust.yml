@@ -16,9 +16,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build (features = default)
       run: cargo build --verbose
-    - name: Build (features = none)
-      run: cargo build --verbose --no-default-features
+    - name: Build (features = rpc)
+      run: cargo build --verbose --no-default-features --features rpc
+    - name: Build (features = stealth)
+      run: cargo build --verbose --no-default-features --features stealth
+
     - name: Run tests (features = default)
       run: cargo test --verbose

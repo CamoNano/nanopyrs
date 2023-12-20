@@ -1,8 +1,8 @@
 mod version;
 mod v0;
 
-use crate::version_bits;
 use crate::{
+    version_bits,
     base32,
     NanoError, Key, Account, Signature, SecretBytes,
     constants::{STEALTH_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
@@ -188,7 +188,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
     fn from_keys(keys: Self::KeysType) -> Self;
     fn from_data(account: &str, data: &[u8]) -> Result<Self, NanoError>;
     fn from_string(account: &str) -> Result<Self, NanoError> {
-        let data = base32::decode(&account[8..])
+        let data = base32::decode(&account[STEALTH_PREFIX_LEN..])
             .ok_or(NanoError::InvalidBase32)?;
         Self::from_data(account, &data)
     }
@@ -310,8 +310,9 @@ pub(super) trait AutoTestUtils: Sized {
 }
 
 macro_rules! stealth_address_tests {
-    ($keys: ident, $versions: expr, $addr: expr) => {
+    ($keys: ident, $account: ident, $versions: expr, $addr: expr) => {
         impl AutoTestUtils for $keys {}
+        impl AutoTestUtils for $account {}
 
         #[cfg(test)]
         mod tests {
@@ -326,6 +327,7 @@ macro_rules! stealth_address_tests {
                 let account = key.to_stealth_account();
 
                 assert!(account.to_string() == $addr);
+                assert!(account == $account::from_string($addr).unwrap());
 
                 assert!($versions == key.get_versions());
                 assert!($versions == view_keys.get_versions());
@@ -373,7 +375,7 @@ pub(crate) use stealth_address_tests;
 #[cfg(test)]
 use crate::constants::HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION;
 stealth_address_tests!(
-    StealthKeys,
+    StealthKeys, StealthAccount,
     versions!(HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION),
     "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

@@ -1,5 +1,5 @@
-use crate::{secret, version_bits};
 use crate::{
+    secret, version_bits,
     base32,
     NanoError, SecretBytes, Scalar, Key, Account,
     try_compressed_from_slice, try_point_from_slice,
@@ -233,7 +233,7 @@ impl Display for StealthAccountV0 {
 
 
 stealth_address_tests!(
-    StealthKeysV0,
+    StealthKeysV0, StealthAccountV0,
     versions!(0),
     "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

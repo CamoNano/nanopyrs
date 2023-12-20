@@ -30,6 +30,8 @@ pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError
 
 #[cfg(feature = "stealth")]
 mod stealth;
+#[cfg(feature = "stealth")]
+pub use stealth::{StealthKeys, StealthViewKeys, StealthAccount, StealthAccountVersions};
 
 #[cfg(feature = "rpc")]
 pub mod rpc;

@@ -18,7 +18,7 @@ pub mod hazmat {
 
     #[cfg(feature = "stealth")]
     pub fn get_category_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
-        blake2b256(&mut [&i.to_be_bytes(), seed.as_slice()].concat())
+        blake2b256(&[&i.to_be_bytes(), seed.as_slice()].concat())
     }
 }
 #[cfg(feature = "stealth")]

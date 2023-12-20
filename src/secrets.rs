@@ -14,7 +14,7 @@ pub use super::account::{Key, Account};
 macro_rules! secret {
     ($data: expr) => {
         {
-            use crate::SecretBytes;
+            use $crate::SecretBytes;
             SecretBytes::from($data)
         }
     };
@@ -23,7 +23,7 @@ macro_rules! secret {
 macro_rules! scalar {
     ($data: expr) => {
         {
-            use crate::Scalar;
+            use $crate::Scalar;
             Scalar::from($data)
         }
     };

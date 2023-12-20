@@ -83,8 +83,8 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, Nan
             versions,
             compressed_spend_key,
             compressed_view_key,
-            point_spend_key: try_point_from_slice(&spend_key)?,
-            point_view_key: try_point_from_slice(&view_key)?
+            point_spend_key: try_point_from_slice(spend_key)?,
+            point_view_key: try_point_from_slice(view_key)?
         }
     )
 }

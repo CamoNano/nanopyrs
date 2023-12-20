@@ -6,7 +6,7 @@ use zeroize::Zeroize;
 macro_rules! version_bits {
     ( $version_bits: expr ) => {
         {
-            use crate::stealth::StealthAccountVersions;
+            use $crate::stealth::StealthAccountVersions;
             StealthAccountVersions::decode_from_bits($version_bits)
         }
     };
@@ -16,7 +16,7 @@ macro_rules! version_bits {
 macro_rules! versions {
     ( $($version: expr),* ) => {
         {
-            use crate::stealth::StealthAccountVersions;
+            use $crate::stealth::StealthAccountVersions;
             let mut version = StealthAccountVersions::default();
             $(
                 version.enable_version($version);
@@ -26,6 +26,7 @@ macro_rules! versions {
     };
 }
 
+#[allow(clippy::absurd_extreme_comparisons)]
 fn is_valid_version(version: u8) -> bool {
     version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
 }
@@ -65,18 +66,15 @@ impl StealthAccountVersions {
     }
 
     pub fn highest_supported_version(&self) -> Option<u8> {
-        for version in (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION).rev() {
-            if self.supports_version(version) {
-                return Some(version);
-            }
-        }
-        None
+        (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
+            .rev()
+            .find(|&version| self.supports_version(version))
     }
 
     pub fn encode_to_bits(&self) -> u8 {
         let mut bits: u8 = 0;
-        for i in 0..8 {
-            if self.supported_versions[i] {
+        for (i, supports_version) in self.supported_versions.into_iter().enumerate() {
+            if supports_version {
                 bits |= 1 << i;
             }
         }
@@ -85,9 +83,9 @@ impl StealthAccountVersions {
 
     pub fn decode_from_bits(bits: u8) -> StealthAccountVersions {
         let mut versions = [false; 8];
-        for i in 0..8 {
+        for (i, version) in versions.iter_mut().enumerate() {
             if bits & (1 << i) != 0 {
-                versions[i] = true;
+                *version = true;
             };
         }
         StealthAccountVersions::from(versions)

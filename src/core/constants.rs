@@ -28,3 +28,23 @@ pub mod epoch_signers {
         Account::try_from("nano_3qb6o6i1tkzr6jwr5s7eehfxwg9x6eemitdinbpi7u8bjjwsgqfj4wzser3x").unwrap()
     }
 }
+
+#[cfg(feature = "stealth")]
+mod stealth {
+    pub const STEALTH_PREFIX: &str = "stealth_";
+    pub(crate) const ADDRESS_CHARS_SAMPLE_SIZE: usize = 8;
+
+    pub(crate) const STEALTH_PREFIX_LEN: usize = STEALTH_PREFIX.len();
+    pub(crate) const ADDRESS_CHARS_SAMPLE_END: usize = STEALTH_PREFIX_LEN + ADDRESS_CHARS_SAMPLE_SIZE;
+
+    // The stealth account protocol has (currently) up to 8 versions.
+    // Support for each version in an address is signaled by toggling bits in 1 byte, encoded in the address.
+    // This improves backwards compatability, while still allowing new features to be added.
+    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 0;
+    pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 7;
+
+    pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;
+    pub const VIEW_CONSTANTS_X_INDEX: u32 = 1;
+}
+#[cfg(feature = "stealth")]
+pub use stealth::*;

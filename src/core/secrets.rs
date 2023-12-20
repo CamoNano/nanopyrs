@@ -13,13 +13,19 @@ pub use super::account::{Key, Account};
 #[macro_export]
 macro_rules! secret {
     ($data: expr) => {
-        SecretBytes::from($data)
+        {
+            use crate::SecretBytes;
+            SecretBytes::from($data)
+        }
     };
 }
 #[macro_export]
 macro_rules! scalar {
     ($data: expr) => {
-        Scalar::from($data)
+        {
+            use crate::Scalar;
+            Scalar::from($data)
+        }
     };
 }
 

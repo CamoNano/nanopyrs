@@ -1,5 +1,5 @@
 use super::nanopy::{
-    get_account_private_key,
+    get_account_scalar,
     account_encode, account_decode,
     sign_message, is_valid_signature
 };
@@ -28,7 +28,7 @@ pub struct Key {
 impl Key {
     /// Get key at index (`i`) given 32-byte seed (`seed`)
     pub fn from_seed(seed: &SecretBytes<32>, i: u32) -> Key {
-        Key { private: get_account_private_key(seed, i) }
+        Key { private: get_account_scalar(seed, i) }
     }
 
     pub fn from_scalar(scalar: Scalar) -> Key {

@@ -9,8 +9,31 @@ use blake2::{
     digest::consts::{U64, U32, U8, U5}
 };
 
+#[cfg(feature = "stealth")]
+use crate::constants::{SPEND_CONSTANTS_X_INDEX, VIEW_CONSTANTS_X_INDEX};
+
 pub mod hazmat {
-    pub use crate::core::nanopy::{get_account_seed, get_account_private_key};
+    pub use crate::core::nanopy::{get_account_seed, get_account_scalar};
+    use super::*;
+
+    #[cfg(feature = "stealth")]
+    pub fn get_category_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
+        blake2b256(&mut [&i.to_be_bytes(), seed.as_slice()].concat())
+    }
+}
+#[cfg(feature = "stealth")]
+use hazmat::get_category_seed;
+
+/// equivalent to `hazmat::get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)`
+#[cfg(feature = "stealth")]
+pub fn get_spend_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
+    get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)
+}
+
+/// equivalent to `hazmat::get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)`
+#[cfg(feature = "stealth")]
+pub fn get_view_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
+    get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)
 }
 
 type Blake2b512 = _Blake2b<U64>;

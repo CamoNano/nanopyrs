@@ -56,7 +56,7 @@ pub fn get_account_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
     blake2b256(&[seed.as_slice(), &i.to_be_bytes()].concat())
 }
 
-pub fn get_account_private_key(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
+pub fn get_account_scalar(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
     blake2b_scalar(get_account_seed(master_seed, i).as_ref())
 }
 

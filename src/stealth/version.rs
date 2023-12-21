@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::{auto_from_impl, constants::*};
 use std::fmt::Display;
 use zeroize::Zeroize;
 
@@ -91,13 +91,15 @@ impl StealthAccountVersions {
         StealthAccountVersions::from(versions)
     }
 }
-impl From<[bool; 8]> for StealthAccountVersions {
-    fn from(value: [bool; 8]) -> Self {
-        StealthAccountVersions { supported_versions: value }
+auto_from_impl!(From, [bool; 8], StealthAccountVersions);
+auto_from_impl!(From, StealthAccountVersions, [bool; 8]);
+impl From<&[bool; 8]> for StealthAccountVersions {
+    fn from(value: &[bool; 8]) -> Self {
+        StealthAccountVersions { supported_versions: *value }
     }
 }
-impl From<StealthAccountVersions> for [bool; 8] {
-    fn from(value: StealthAccountVersions) -> Self {
+impl From<&StealthAccountVersions> for [bool; 8] {
+    fn from(value: &StealthAccountVersions) -> Self {
         value.supported_versions
     }
 }

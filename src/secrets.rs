@@ -1,3 +1,4 @@
+use crate::auto_from_impl;
 use auto_ops::{impl_op_ex, impl_op_ex_commutative};
 use std::convert::From;
 use std::fmt::Debug;
@@ -36,6 +37,9 @@ pub struct SecretBytes<const T: usize> {
     bytes: Box<[u8; T]>
 }
 impl<const T: usize> SecretBytes<T> {
+    pub fn as_bytes(&self) -> &[u8; T] {
+        &self.bytes
+    }
     pub fn as_slice(&self) -> &[u8] {
         self.bytes.as_slice()
     }
@@ -47,6 +51,14 @@ impl<const T: usize> SecretBytes<T> {
         SecretBytes { bytes: self.bytes.clone() }
     }
 }
+impl<const T: usize> From<&mut [u8; T]> for SecretBytes<T> {
+    /// **The input will be zeroized**
+    fn from(value: &mut [u8; T]) -> Self {
+        let secret = SecretBytes{bytes: Box::new(*value)};
+        value.zeroize();
+        secret
+    }
+}
 impl<const T: usize> AsMut<[u8; T]> for SecretBytes<T> {
     fn as_mut(&mut self) -> &mut [u8; T] {
         self.bytes.as_mut()
@@ -55,14 +67,6 @@ impl<const T: usize> AsMut<[u8; T]> for SecretBytes<T> {
 impl<const T: usize> AsRef<[u8; T]> for SecretBytes<T> {
     fn as_ref(&self) -> &[u8; T] {
         &self.bytes
-    }
-}
-impl<const T: usize> From<&mut [u8; T]> for SecretBytes<T> {
-    /// **The input will be zeroized**
-    fn from(value: &mut [u8; T]) -> Self {
-        let secret = SecretBytes{bytes: Box::new(*value)};
-        value.zeroize();
-        secret
     }
 }
 impl<const T: usize> Debug for SecretBytes<T> {
@@ -78,21 +82,24 @@ pub struct Scalar {
     scalar: Box<RawScalar>
 }
 impl Scalar {
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> &[u8; 32] {
         self.as_ref().as_bytes()
+    }
+    pub fn as_slice(&self) -> &[u8] {
+        self.as_bytes().as_slice()
     }
     /// Cloning is made intentionally difficult for safety reasons
     pub fn dangerous_clone(&self) -> Scalar {
         Scalar {scalar: self.scalar.clone()}
     }
 }
-impl AsRef<RawScalar> for Scalar {
-    fn as_ref(&self) -> &RawScalar {
-        &self.scalar
-    }
-}
-impl From<SecretBytes<32>> for Scalar {
-    fn from(value: SecretBytes<32>) -> Self {
+
+auto_from_impl!(From, SecretBytes<32>, Scalar);
+auto_from_impl!(From, SecretBytes<64>, Scalar);
+auto_from_impl!(From, Scalar, RawScalar);
+
+impl From<&SecretBytes<32>> for Scalar {
+    fn from(value: &SecretBytes<32>) -> Self {
         Scalar{
             scalar: Box::new(
                 RawScalar::from_bytes_mod_order(clamp_integer(*value.as_ref()))
@@ -100,17 +107,17 @@ impl From<SecretBytes<32>> for Scalar {
         }
     }
 }
+impl From<&SecretBytes<64>> for Scalar {
+    fn from(value: &SecretBytes<64>) -> Self {
+        Scalar::from(
+            &mut RawScalar::from_bytes_mod_order_wide(value.as_ref())
+        )
+    }
+}
 impl From<&mut [u8; 32]> for Scalar {
     /// **The input will be zeroized**
     fn from(value: &mut [u8; 32]) -> Self {
         Scalar::from(secret!(value))
-    }
-}
-impl From<SecretBytes<64>> for Scalar {
-    fn from(value: SecretBytes<64>) -> Self {
-        Scalar::from(
-            &mut RawScalar::from_bytes_mod_order_wide(value.as_ref())
-        )
     }
 }
 impl From<&mut [u8; 64]> for Scalar {
@@ -127,11 +134,15 @@ impl From<&mut RawScalar> for Scalar {
         scalar
     }
 }
-impl From<Scalar> for RawScalar {
-    fn from(value: Scalar) -> Self {
+impl From<&Scalar> for RawScalar {
+    fn from(value: &Scalar) -> Self {
         let scalar = value.as_ref().to_owned();
-        drop(value);
         scalar
+    }
+}
+impl AsRef<RawScalar> for Scalar {
+    fn as_ref(&self) -> &RawScalar {
+        &self.scalar
     }
 }
 impl Debug for Scalar {

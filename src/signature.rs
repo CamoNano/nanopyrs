@@ -1,3 +1,4 @@
+use crate::auto_from_impl;
 use super::{NanoError, Key, Account, try_point_from_slice};
 use zeroize::Zeroize;
 use curve25519_dalek::{EdwardsPoint, Scalar as RawScalar};
@@ -14,7 +15,7 @@ pub struct Signature {
 }
 impl Signature {
     pub fn to_bytes(&self) -> [u8; 64] {
-        (*self).into()
+        self.into()
     }
 
     pub fn new(message: &[u8], key: &Key) -> Signature {
@@ -25,18 +26,22 @@ impl Signature {
         account.is_valid_signature(message, *self)
     }
 }
-impl From<Signature> for [u8; 64] {
-    fn from(value: Signature) -> Self {
+
+auto_from_impl!(From, Signature, [u8; 64]);
+auto_from_impl!(TryFrom, [u8; 64], Signature);
+
+impl From<&Signature> for [u8; 64] {
+    fn from(value: &Signature) -> Self {
         [
             value.r.compress().to_bytes(),
             value.s.to_bytes()
         ].concat().try_into().unwrap()
     }
 }
-impl TryFrom<[u8; 64]> for Signature {
+impl TryFrom<&[u8; 64]> for Signature {
     type Error = NanoError;
 
-    fn try_from(value: [u8; 64]) -> Result<Self, NanoError> {
+    fn try_from(value: &[u8; 64]) -> Result<Self, NanoError> {
         let r = try_point_from_slice(&value[..32])?;
         let s = RawScalar::from_bytes_mod_order(
             value[32..64].try_into().unwrap()

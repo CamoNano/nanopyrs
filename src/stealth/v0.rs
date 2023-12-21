@@ -1,5 +1,5 @@
 use crate::{
-    secret, version_bits,
+    secret, version_bits, auto_from_impl,
     base32,
     NanoError, SecretBytes, Scalar, Key, Account,
     try_compressed_from_slice, try_point_from_slice,
@@ -24,11 +24,11 @@ fn ecdh(key_1: &Scalar, key_2: EdwardsPoint) -> SecretBytes<32> {
 }
 
 /// returns (spend, view)
-fn get_private_keys(view_seed: &SecretBytes<32>, i: u32) -> (Scalar, Scalar) {
-    let view_seed = blake2b512(get_account_seed(view_seed, i).as_ref());
+fn get_partial_keys(view_seed: &SecretBytes<32>, i: u32) -> (Scalar, Scalar) {
+    let account_seed = blake2b512(get_account_seed(view_seed, i).as_ref());
     (
-        blake2b_scalar(&view_seed.as_ref()[..32]),
-        blake2b_scalar(&view_seed.as_ref()[32..64])
+        blake2b_scalar(&account_seed.as_ref()[..32]),
+        blake2b_scalar(&account_seed.as_ref()[32..64])
     )
 }
 
@@ -103,10 +103,10 @@ impl StealthKeysTrait for StealthKeysV0 {
 
     fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> StealthKeysV0 {
         let master_spend = get_account_scalar(&get_spend_seed(master_seed), 0);
-        let (private_spend, private_view) = get_private_keys(&get_view_seed(master_seed), i);
+        let (partial_spend, private_view) = get_partial_keys(&get_view_seed(master_seed), i);
         StealthKeysV0 {
             versions,
-            private_spend: master_spend + private_spend,
+            private_spend: master_spend + partial_spend,
             private_view
         }
     }
@@ -155,7 +155,7 @@ impl StealthViewKeysTrait for StealthViewKeysV0 {
     type AccountType = StealthAccountV0;
 
     fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> StealthViewKeysV0 {
-        let (private_spend, private_view) = get_private_keys(view_seed, i);
+        let (private_spend, private_view) = get_partial_keys(view_seed, i);
         let point_spend_key = master_spend + (private_spend * G);
         StealthViewKeysV0 {
             versions,
@@ -186,6 +186,39 @@ impl StealthViewKeysTrait for StealthViewKeysV0 {
     }
 }
 
+auto_from_impl!(From, StealthViewKeysV0, SecretBytes<65>);
+auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeysV0);
+
+impl From<&StealthViewKeysV0> for SecretBytes<65> {
+    fn from(value: &StealthViewKeysV0) -> Self {
+        let mut bytes = [
+            [value.versions.encode_to_bits()].as_slice(),
+            value.compressed_spend_key.as_bytes(),
+            value.private_view.as_slice()
+        ].concat().try_into().unwrap();
+        SecretBytes::from(&mut bytes)
+    }
+}
+impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
+    type Error = NanoError;
+
+    fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
+        let bytes = value.as_ref();
+
+        let versions = StealthAccountVersions::decode_from_bits(bytes[0]);
+        let compressed_spend_key = try_compressed_from_slice(&bytes[1..33])?;
+        let point_spend_key = try_point_from_slice(&bytes[1..33])?;
+        let mut private_view: [u8; 32] = bytes[33..].as_ref().try_into().unwrap();
+        let private_view = Scalar::from(&mut private_view);
+
+        Ok(StealthViewKeysV0 {
+            versions,
+            compressed_spend_key,
+            point_spend_key,
+            private_view
+        })
+    }
+}
 
 
 #[derive(Debug, Clone, Zeroize, PartialEq)]

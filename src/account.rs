@@ -1,3 +1,4 @@
+use crate::auto_from_impl;
 use super::nanopy::{
     get_account_scalar,
     account_encode, account_decode,
@@ -110,41 +111,35 @@ impl Account {
         is_valid_signature(message, signature, self)
     }
 }
-impl From<Key> for Account {
-    fn from(value: Key) -> Self {
-        value * G
-    }
-}
+
+auto_from_impl!(From, Account, String);
+#[cfg(feature = "rpc")]
+auto_from_impl!(From, Account, JsonValue);
+auto_from_impl!(From, Key, Account);
+auto_from_impl!(From, EdwardsPoint, Account);
+auto_from_impl!(TryFrom, String, Account);
+auto_from_impl!(TryFrom, CompressedEdwardsY, Account);
+auto_from_impl!(TryFrom, [u8; 32], Account);
+
 impl From<&Key> for Account {
     fn from(value: &Key) -> Self {
         value * G
     }
 }
-impl From<EdwardsPoint> for Account {
-    fn from(value: EdwardsPoint) -> Self {
-        let compressed = value.compress();
-        let account = account_encode(&compressed);
-        Account{account, compressed, point: value}
-    }
-}
 impl From<&EdwardsPoint> for Account {
     fn from(value: &EdwardsPoint) -> Self {
-        Account::from(value.to_owned())
-    }
-}
-impl TryFrom<String> for Account {
-    type Error = NanoError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let compressed = account_decode(&value)?;
-        let point = compressed.decompress()
-            .ok_or(NanoError::InvalidPoint)?;
-        Ok(Account{account: value, compressed, point})
+        let compressed = value.compress();
+        let account = account_encode(&compressed);
+        Account{account, compressed, point: *value}
     }
 }
 impl TryFrom<&String> for Account {
     type Error = NanoError;
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Account::try_from(value.to_owned())
+        let compressed = account_decode(&value)?;
+        let point = compressed.decompress()
+            .ok_or(NanoError::InvalidPoint)?;
+        Ok(Account{account: value.to_string(), compressed, point})
     }
 }
 impl TryFrom<&str> for Account {
@@ -153,49 +148,26 @@ impl TryFrom<&str> for Account {
         Account::try_from(value.to_owned())
     }
 }
-impl TryFrom<CompressedEdwardsY> for Account {
-    type Error = NanoError;
-    fn try_from(value: CompressedEdwardsY) -> Result<Self, Self::Error> {
-        let account = account_encode(&value);
-        let point = value.decompress()
-            .ok_or(NanoError::InvalidPoint)?;
-        Ok(Account{account, compressed: value, point})
-    }
-}
 impl TryFrom<&CompressedEdwardsY> for Account {
     type Error = NanoError;
     fn try_from(value: &CompressedEdwardsY) -> Result<Self, Self::Error> {
-        Account::try_from(value.to_owned())
-    }
-}
-impl TryFrom<[u8; 32]> for Account {
-    type Error = NanoError;
-    fn try_from(value: [u8; 32]) -> Result<Self, Self::Error> {
-        let compressed = CompressedEdwardsY::from_slice(&value)
-            .or(Err(NanoError::InvalidPoint))?;
-        Account::try_from(compressed)
+        let account = account_encode(&value);
+        let point = value.decompress()
+            .ok_or(NanoError::InvalidPoint)?;
+        Ok(Account{account, compressed: *value, point})
     }
 }
 impl TryFrom<&[u8; 32]> for Account {
     type Error = NanoError;
     fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
-        Account::try_from(value.to_owned())
-    }
-}
-impl From<Account> for String {
-    fn from(val: Account) -> Self {
-        val.to_string()
+        let compressed = CompressedEdwardsY::from_slice(value)
+            .or(Err(NanoError::InvalidPoint))?;
+        Account::try_from(compressed)
     }
 }
 impl From<&Account> for String {
     fn from(val: &Account) -> Self {
         val.to_string()
-    }
-}
-#[cfg(feature = "rpc")]
-impl From<Account> for JsonValue {
-    fn from(val: Account) -> Self {
-        val.to_string().into()
     }
 }
 #[cfg(feature = "rpc")]

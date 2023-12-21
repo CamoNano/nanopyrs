@@ -105,7 +105,7 @@ impl StealthKeys {
 
 
 
-pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
+pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     type AccountType: StealthAccountTrait;
 
     fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Self;
@@ -142,6 +142,14 @@ impl StealthViewKeys {
         self.into()
     }
 
+    pub fn to_bytes(&self) -> SecretBytes<65> {
+        self.into()
+    }
+
+    pub fn from_bytes(value: &SecretBytes<65>) -> Result<StealthViewKeys, NanoError> {
+        StealthViewKeys::try_from(value)
+    }
+
     /// Account for "notification" transactions to be sent to, if applicable
     pub fn notification_account(&self) -> Account {
         unwrap_enum!(StealthViewKeys, self).notification_account()
@@ -165,6 +173,35 @@ impl StealthViewKeys {
 
     pub fn derive_account(&self, sender_account: Account, i: u32) -> Account {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
+    }
+}
+impl From<StealthViewKeys> for SecretBytes<65> {
+    fn from(value: StealthViewKeys) -> Self {
+        (&value).into()
+    }
+}
+impl From<&StealthViewKeys> for SecretBytes<65> {
+    fn from(value: &StealthViewKeys) -> Self {
+        unwrap_enum!(StealthViewKeys, value).into()
+    }
+}
+impl TryFrom<SecretBytes<65>> for StealthViewKeys {
+    type Error = NanoError;
+
+    fn try_from(value: SecretBytes<65>) -> Result<Self, NanoError> {
+        (&value).try_into()
+    }
+}
+impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
+    type Error = NanoError;
+
+    fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
+        let versions = StealthAccountVersions::decode_from_bits(value.as_ref()[0]);
+
+        match versions.highest_supported_version() {
+            Some(0) => Ok(StealthViewKeys::V0(StealthViewKeysV0::try_from(value)?)),
+            _ => Err(NanoError::InvalidVersions(versions))
+        }
     }
 }
 impl From<StealthKeys> for StealthViewKeys {

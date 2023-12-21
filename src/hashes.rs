@@ -14,8 +14,9 @@ use crate::constants::{SPEND_CONSTANTS_X_INDEX, VIEW_CONSTANTS_X_INDEX};
 
 pub mod hazmat {
     pub use crate::nanopy::{get_account_seed, get_account_scalar};
-    use super::*;
 
+    #[cfg(feature = "stealth")]
+    use super::*;
     #[cfg(feature = "stealth")]
     pub fn get_category_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
         blake2b256(&[&i.to_be_bytes(), seed.as_slice()].concat())

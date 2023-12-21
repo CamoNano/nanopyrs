@@ -27,13 +27,13 @@ use hazmat::get_category_seed;
 
 /// equivalent to `hazmat::get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)`
 #[cfg(feature = "stealth")]
-pub fn get_spend_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
+pub fn get_stealth_spend_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
     get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)
 }
 
 /// equivalent to `hazmat::get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)`
 #[cfg(feature = "stealth")]
-pub fn get_view_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
+pub fn get_stealth_view_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
     get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)
 }
 
@@ -42,34 +42,34 @@ type Blake2b256 = _Blake2b<U32>;
 type Blake2bWork = _Blake2b<U8>;
 type Blake2bChecksum = _Blake2b<U5>;
 
-macro_rules! hash {
-    ($type: ty, $input: expr) => {
-        {
-            let mut hasher = <$type>::new();
-            hasher.update($input);
-            hasher.finalize().into()
-        }
-    };
-}
-
 pub fn blake2b512(input: &[u8]) -> SecretBytes<64> {
-    secret!(&mut hash!(Blake2b512, input))
+    let mut hasher = Blake2b512::new();
+    hasher.update(input);
+    let hash: [u8; 64] = hasher.finalize().into();
+    secret!(hash)
 }
 
 pub fn blake2b256(input: &[u8]) -> SecretBytes<32> {
-    secret!(&mut hash!(Blake2b256, input))
+    let mut hasher = Blake2b256::new();
+    hasher.update(input);
+    let hash: [u8; 32] = hasher.finalize().into();
+    secret!(hash)
 }
 
 pub fn blake2b_work(input: &[u8]) -> [u8; 8] {
-    hash!(Blake2bWork, input)
+    let mut hasher = Blake2bWork::new();
+    hasher.update(input);
+    hasher.finalize().into()
 }
 
 pub fn blake2b_checksum(input: &[u8]) -> [u8; 5] {
-    hash!(Blake2bChecksum, input)
+    let mut hasher = Blake2bChecksum::new();
+    hasher.update(input);
+    hasher.finalize().into()
 }
 
 pub fn blake2b_scalar(input: &[u8]) -> Scalar {
-    scalar!(&mut RawScalar::from_bytes_mod_order(clamp_integer(
+    scalar!(RawScalar::from_bytes_mod_order(clamp_integer(
         blake2b512(input).as_ref()[..32].try_into().unwrap()
     )))
 }

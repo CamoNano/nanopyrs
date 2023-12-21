@@ -4,7 +4,7 @@ use crate::{
     NanoError, SecretBytes, Scalar, Key, Account,
     try_compressed_from_slice, try_point_from_slice,
     hashes::{
-        blake2b512, blake2b_checksum, blake2b_scalar, get_spend_seed, get_view_seed,
+        blake2b512, blake2b_checksum, blake2b_scalar, get_stealth_spend_seed, get_stealth_view_seed,
         hazmat::{get_account_seed, get_account_scalar}
     }
 };
@@ -20,7 +20,7 @@ use curve25519_dalek::{
 };
 
 fn ecdh(key_1: &Scalar, key_2: EdwardsPoint) -> SecretBytes<32> {
-    secret!(&mut (key_1 * key_2).compress().to_bytes())
+    secret!((key_1 * key_2).compress().to_bytes())
 }
 
 /// returns (spend, view)
@@ -91,7 +91,7 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, Nan
 
 
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct StealthKeysV0 {
     versions: StealthAccountVersions,
     private_spend: Scalar,
@@ -102,8 +102,8 @@ impl StealthKeysTrait for StealthKeysV0 {
     type AccountType = StealthAccountV0;
 
     fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> StealthKeysV0 {
-        let master_spend = get_account_scalar(&get_spend_seed(master_seed), 0);
-        let (partial_spend, private_view) = get_partial_keys(&get_view_seed(master_seed), i);
+        let master_spend = get_account_scalar(&get_stealth_spend_seed(master_seed), 0);
+        let (partial_spend, private_view) = get_partial_keys(&get_stealth_view_seed(master_seed), i);
         StealthKeysV0 {
             versions,
             private_spend: master_spend + partial_spend,
@@ -144,12 +144,12 @@ impl StealthKeysTrait for StealthKeysV0 {
 
 
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct StealthViewKeysV0 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
-    private_view: Scalar,
+    pub private_view: Scalar,
 }
 impl StealthViewKeysTrait for StealthViewKeysV0 {
     type AccountType = StealthAccountV0;
@@ -191,12 +191,12 @@ auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeysV0);
 
 impl From<&StealthViewKeysV0> for SecretBytes<65> {
     fn from(value: &StealthViewKeysV0) -> Self {
-        let mut bytes = [
+        let bytes: [u8; 65] = [
             [value.versions.encode_to_bits()].as_slice(),
             value.compressed_spend_key.as_bytes(),
-            value.private_view.as_slice()
+            value.private_view.as_bytes()
         ].concat().try_into().unwrap();
-        SecretBytes::from(&mut bytes)
+        SecretBytes::from(bytes)
     }
 }
 impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
@@ -208,8 +208,8 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
         let versions = StealthAccountVersions::decode_from_bits(bytes[0]);
         let compressed_spend_key = try_compressed_from_slice(&bytes[1..33])?;
         let point_spend_key = try_point_from_slice(&bytes[1..33])?;
-        let mut private_view: [u8; 32] = bytes[33..].as_ref().try_into().unwrap();
-        let private_view = Scalar::from(&mut private_view);
+        let private_view = Scalar::from_canonical_bytes(
+            bytes[33..].as_ref().try_into().unwrap())?;
 
         Ok(StealthViewKeysV0 {
             versions,
@@ -221,7 +221,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
 }
 
 
-#[derive(Debug, Clone, Zeroize, PartialEq)]
+#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
 pub struct StealthAccountV0 {
     account: String,
     versions: StealthAccountVersions,
@@ -266,7 +266,7 @@ impl Display for StealthAccountV0 {
 
 
 stealth_address_tests!(
-    StealthKeysV0, StealthAccountV0,
+    StealthKeysV0, StealthViewKeysV0, StealthAccountV0,
     versions!(0),
     "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

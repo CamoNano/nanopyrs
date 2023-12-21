@@ -146,7 +146,7 @@ mod tests {
     const INFINITE_WORK_DIFFICULTY: [u8; 8] = 0xffffffffffffffff_u64.to_be_bytes();
 
     fn create_test_block() -> Block {
-        let seed = SecretBytes::from(&mut [0; 32]);
+        let seed = SecretBytes::from([0; 32]);
         let key = Key::from_seed(&seed, 0);
         let account = key.to_account();
         let representative = Key::from_seed(&seed, 1).to_account();
@@ -159,7 +159,7 @@ mod tests {
             balance: ONE_NANO,
             link: [128; 32],
 
-            signature: [0; 64].try_into().unwrap(),
+            signature: Signature::default(),
             work: [0; 8]
         }
     }
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn create_signature() {
-        let seed = SecretBytes::from(&mut [0; 32]);
+        let seed = SecretBytes::from([0; 32]);
         let key = Key::from_seed(&seed, 0);
         let mut block = create_test_block();
 

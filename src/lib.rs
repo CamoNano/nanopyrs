@@ -31,8 +31,12 @@ pub(crate) fn try_compressed_from_slice(key: &[u8]) -> Result<CompressedEdwardsY
 }
 
 pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError> {
-    try_compressed_from_slice(key)?
-        .decompress().ok_or(NanoError::InvalidPoint)
+    let point = try_compressed_from_slice(key)?
+        .decompress().ok_or(NanoError::InvalidPoint)?;
+    if point.is_small_order() {
+        return Err(NanoError::InvalidPoint)
+    }
+    Ok(point)
 }
 
 macro_rules! auto_from_impl {

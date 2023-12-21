@@ -36,6 +36,10 @@ impl Key {
         Key::from(scalar)
     }
 
+    pub fn from_raw_scalar(scalar: RawScalar) -> Key {
+        Key::from(scalar)
+    }
+
     pub fn to_account(&self) -> Account {
         Account::from(self)
     }
@@ -57,8 +61,8 @@ impl From<Scalar> for Key {
         Key { private: value }
     }
 }
-impl From<&mut RawScalar> for Key {
-    fn from(value: &mut RawScalar) -> Self {
+impl From<RawScalar> for Key {
+    fn from(value: RawScalar) -> Self {
         Key::from(Scalar::from(value))
     }
 }
@@ -136,7 +140,7 @@ impl From<&EdwardsPoint> for Account {
 impl TryFrom<&String> for Account {
     type Error = NanoError;
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        let compressed = account_decode(&value)?;
+        let compressed = account_decode(value)?;
         let point = compressed.decompress()
             .ok_or(NanoError::InvalidPoint)?;
         Ok(Account{account: value.to_string(), compressed, point})
@@ -151,7 +155,7 @@ impl TryFrom<&str> for Account {
 impl TryFrom<&CompressedEdwardsY> for Account {
     type Error = NanoError;
     fn try_from(value: &CompressedEdwardsY) -> Result<Self, Self::Error> {
-        let account = account_encode(&value);
+        let account = account_encode(value);
         let point = value.decompress()
             .ok_or(NanoError::InvalidPoint)?;
         Ok(Account{account, compressed: *value, point})
@@ -208,14 +212,14 @@ mod tests {
         let genesis = Account::try_from(&genesis).unwrap();
         assert!(genesis == get_genesis_account());
 
-        let seed = SecretBytes::from(&mut [0; 32]);
+        let seed = SecretBytes::from([0; 32]);
         let account = Key::from_seed(&seed, 0).to_account();
         assert!(account.to_string() == "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7");
     }
 
     #[test]
     fn math() {
-        let seed = SecretBytes::from(&mut [0; 32]);
+        let seed = SecretBytes::from([0; 32]);
 
         let key_1 = Key::from_seed(&seed, 0);
         let key_2 = Key::from_seed(&seed, 1);

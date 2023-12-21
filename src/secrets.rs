@@ -51,10 +51,10 @@ impl<const T: usize> SecretBytes<T> {
         SecretBytes { bytes: self.bytes.clone() }
     }
 }
-impl<const T: usize> From<&mut [u8; T]> for SecretBytes<T> {
+impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
     /// **The input will be zeroized**
-    fn from(value: &mut [u8; T]) -> Self {
-        let secret = SecretBytes{bytes: Box::new(*value)};
+    fn from(mut value: [u8; T]) -> Self {
+        let secret = SecretBytes{bytes: Box::new(value)};
         value.zeroize();
         secret
     }
@@ -82,6 +82,25 @@ pub struct Scalar {
     scalar: Box<RawScalar>
 }
 impl Scalar {
+    pub fn from_bytes_mod_order(mut bytes: [u8; 32]) -> Scalar {
+        let raw = RawScalar::from_bytes_mod_order(bytes);
+        bytes.zeroize();
+        Scalar::from(raw)
+    }
+    pub fn from_bytes_mod_order_wide(mut bytes: [u8; 64]) -> Scalar {
+        let raw = RawScalar::from_bytes_mod_order_wide(&bytes);
+        bytes.zeroize();
+        Scalar::from(raw)
+    }
+    pub fn from_canonical_bytes(mut bytes: [u8; 32]) -> Result<Scalar, NanoError> {
+        let raw = RawScalar::from_canonical_bytes(bytes);
+        if raw.is_none().into() {
+            return Err(NanoError::InvalidPoint);
+        }
+        bytes.zeroize();
+        Ok(Scalar::from(raw.unwrap()))
+    }
+
     pub fn as_bytes(&self) -> &[u8; 32] {
         self.as_ref().as_bytes()
     }
@@ -109,35 +128,32 @@ impl From<&SecretBytes<32>> for Scalar {
 }
 impl From<&SecretBytes<64>> for Scalar {
     fn from(value: &SecretBytes<64>) -> Self {
-        Scalar::from(
-            &mut RawScalar::from_bytes_mod_order_wide(value.as_ref())
-        )
+        Scalar::from(RawScalar::from_bytes_mod_order_wide(value.as_ref()))
     }
 }
-impl From<&mut [u8; 32]> for Scalar {
+impl From<[u8; 32]> for Scalar {
     /// **The input will be zeroized**
-    fn from(value: &mut [u8; 32]) -> Self {
+    fn from(value: [u8; 32]) -> Self {
         Scalar::from(secret!(value))
     }
 }
-impl From<&mut [u8; 64]> for Scalar {
+impl From<[u8; 64]> for Scalar {
     /// **The input will be zeroized**
-    fn from(value: &mut [u8; 64]) -> Self {
+    fn from(value: [u8; 64]) -> Self {
         Scalar::from(secret!(value))
     }
 }
-impl From<&mut RawScalar> for Scalar {
+impl From<RawScalar> for Scalar {
     /// **The input will be zeroized**
-    fn from(value: &mut RawScalar) -> Self {
-        let scalar = Scalar{ scalar: Box::new(*value) };
+    fn from(mut value: RawScalar) -> Self {
+        let scalar = Scalar{ scalar: Box::new(value) };
         value.zeroize();
         scalar
     }
 }
 impl From<&Scalar> for RawScalar {
     fn from(value: &Scalar) -> Self {
-        let scalar = value.as_ref().to_owned();
-        scalar
+        value.as_ref().to_owned()
     }
 }
 impl AsRef<RawScalar> for Scalar {
@@ -152,30 +168,30 @@ impl Debug for Scalar {
 }
 
 impl_op_ex!(- |a: &Scalar| -> Scalar {
-    Scalar::from(&mut -a.as_ref())
+    Scalar::from(-a.as_ref())
 });
 
 impl_op_ex!(+ |a: &Scalar, b: &Scalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() + b.as_ref()))
+    Scalar::from(a.as_ref() + b.as_ref())
 });
 impl_op_ex!(* |a: &Scalar, b: &Scalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() * b.as_ref()))
+    Scalar::from(a.as_ref() * b.as_ref())
 });
 impl_op_ex!(- |a: &Scalar, b: &Scalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() - b.as_ref()))
+    Scalar::from(a.as_ref() - b.as_ref())
 });
 
 impl_op_ex_commutative!(+ |a: &Scalar, b: &RawScalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() + b))
+    Scalar::from(a.as_ref() + b)
 });
 impl_op_ex_commutative!(* |a: &Scalar, b: &RawScalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() * b))
+    Scalar::from(a.as_ref() * b)
 });
 impl_op_ex!(- |a: &Scalar, b: &RawScalar| -> Scalar {
-    Scalar::from(&mut (a.as_ref() - b))
+    Scalar::from(a.as_ref() - b)
 });
 impl_op_ex!(- |a: &RawScalar, b: &Scalar| -> Scalar {
-    Scalar::from(&mut (a - b.as_ref()))
+    Scalar::from(a - b.as_ref())
 });
 
 impl_op_ex_commutative!(* |a: &Scalar, b: &EdwardsPoint| -> EdwardsPoint {

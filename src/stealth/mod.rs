@@ -1,5 +1,12 @@
 mod version;
+
 mod v0;
+
+pub mod hazmat {
+    pub mod v0 {
+        pub use crate::stealth::v0::*;
+    }
+}
 
 use crate::{
     version_bits,
@@ -57,7 +64,7 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
     }
 }
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
     V0(StealthKeysV0)
 }
@@ -126,7 +133,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     }
 }
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
     V0(StealthViewKeysV0)
 }
@@ -248,7 +255,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
     }
 }
 
-#[derive(Debug, Zeroize, Clone, PartialEq)]
+#[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
 pub enum StealthAccount {
     V0(StealthAccountV0)
 }
@@ -347,7 +354,7 @@ pub(super) trait AutoTestUtils: Sized {
 }
 
 macro_rules! stealth_address_tests {
-    ($keys: ident, $account: ident, $versions: expr, $addr: expr) => {
+    ($keys: ident, $view_keys: ident, $account: ident, $versions: expr, $addr: expr) => {
         impl AutoTestUtils for $keys {}
         impl AutoTestUtils for $account {}
 
@@ -358,7 +365,7 @@ macro_rules! stealth_address_tests {
 
             #[test]
             fn stealth_account() {
-                let seed = SecretBytes::from(&mut [0; 32]);
+                let seed = SecretBytes::from([0; 32]);
                 let key = $keys::from_seed(&seed, 0, $versions).unwrap();
                 let view_keys = key.to_view_keys();
                 let account = key.to_stealth_account();
@@ -373,7 +380,7 @@ macro_rules! stealth_address_tests {
 
             #[test]
             fn notification_account() {
-                let seed = SecretBytes::from(&mut [0; 32]);
+                let seed = SecretBytes::from([0; 32]);
                 let keys = $keys::from_seed(&seed, 0, $versions).unwrap();
                 let view_keys = keys.to_view_keys();
                 let account = keys.to_view_keys();
@@ -388,7 +395,7 @@ macro_rules! stealth_address_tests {
 
             #[test]
             fn derive_account() {
-                let seed = SecretBytes::from(&mut [127; 32]);
+                let seed = SecretBytes::from([127; 32]);
 
                 let sender_keys = Key::from_seed(&seed, 0);
                 let sender_account = sender_keys.to_account();
@@ -404,6 +411,17 @@ macro_rules! stealth_address_tests {
                 assert!(recipient_derived == recipient_vk_derived);
                 assert!(recipient_derived == sender_derived);
             }
+
+            #[test]
+            fn view_keys_bytes() {
+                let seed = SecretBytes::from([42; 32]);
+                let sender_view_keys_1 = $keys::from_seed(&seed, 99, $versions).unwrap().to_view_keys();
+
+                let bytes: SecretBytes<65> = (&sender_view_keys_1).into();
+                let sender_view_keys_2 = $view_keys::try_from(bytes).unwrap().into();
+
+                assert!(sender_view_keys_1 == sender_view_keys_2);
+            }
         }
     };
 }
@@ -412,7 +430,7 @@ pub(crate) use stealth_address_tests;
 #[cfg(test)]
 use crate::constants::HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION;
 stealth_address_tests!(
-    StealthKeys, StealthAccount,
+    StealthKeys, StealthViewKeys, StealthAccount,
     versions!(HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION),
     "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

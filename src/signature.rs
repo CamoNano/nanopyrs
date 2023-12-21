@@ -8,7 +8,7 @@ pub mod hazmat {
     pub use crate::nanopy::sign_message_with_r;
 }
 
-#[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq, Default)]
 pub struct Signature {
     pub r: EdwardsPoint,
     pub s: RawScalar
@@ -55,7 +55,7 @@ mod tests {
     use crate::{SecretBytes, Key};
 
     fn get_key(seed: [u8; 32], i: u32) -> Key {
-        let seed = SecretBytes::from(&mut seed.clone());
+        let seed = SecretBytes::from(seed);
         Key::from_seed(&seed, i)
     }
 

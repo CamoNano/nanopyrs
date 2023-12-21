@@ -52,7 +52,6 @@ impl<const T: usize> SecretBytes<T> {
     }
 }
 impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
-    /// **The input will be zeroized**
     fn from(mut value: [u8; T]) -> Self {
         let secret = SecretBytes{bytes: Box::new(value)};
         value.zeroize();
@@ -132,19 +131,16 @@ impl From<&SecretBytes<64>> for Scalar {
     }
 }
 impl From<[u8; 32]> for Scalar {
-    /// **The input will be zeroized**
     fn from(value: [u8; 32]) -> Self {
         Scalar::from(secret!(value))
     }
 }
 impl From<[u8; 64]> for Scalar {
-    /// **The input will be zeroized**
     fn from(value: [u8; 64]) -> Self {
         Scalar::from(secret!(value))
     }
 }
 impl From<RawScalar> for Scalar {
-    /// **The input will be zeroized**
     fn from(mut value: RawScalar) -> Self {
         let scalar = Scalar{ scalar: Box::new(value) };
         value.zeroize();

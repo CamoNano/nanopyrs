@@ -24,5 +24,5 @@ jobs:
     - name: Build (features = stealth)
       run: cargo build --verbose --no-default-features --features stealth
 
-    - name: Run tests (features = default)
-      run: cargo test --verbose
+    - name: Run tests (features = all)
+      run: cargo test --verbose --all-features

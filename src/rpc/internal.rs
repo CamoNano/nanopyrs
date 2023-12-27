@@ -6,7 +6,7 @@ use json::{
     Map
 };
 
-pub(super) fn trim_json(value: String) -> String {
+pub fn trim_json(value: String) -> String {
     value.trim_matches('\"').into()
 }
 
@@ -16,11 +16,11 @@ pub struct InternalRpc {
     pub(crate) url: String
 }
 impl InternalRpc {
-    pub fn new(url: &str) -> InternalRpc {
-        InternalRpc {
-            builder: Client::new().post(url),
+    pub fn new(url: &str, client: Client) -> Result<InternalRpc, RpcError> {
+        Ok(InternalRpc {
+            builder: client.post(url),
             url: url.into()
-        }
+        })
     }
 
     pub async fn _raw_request(&self, json: JsonValue) -> Result<JsonValue, RpcError> {

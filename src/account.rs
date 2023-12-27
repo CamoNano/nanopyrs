@@ -36,10 +36,6 @@ impl Key {
         Key::from(scalar)
     }
 
-    pub fn from_raw_scalar(scalar: RawScalar) -> Key {
-        Key::from(scalar)
-    }
-
     pub fn to_account(&self) -> Account {
         Account::from(self)
     }

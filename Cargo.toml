@@ -1,6 +1,6 @@
 [package]
 name = "nanopyrs"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "Rust rewrite of the Python nanopy library"
 license = "MIT"
@@ -29,3 +29,6 @@ default = []
 all = ["stealth", "rpc"]
 stealth = []
 rpc = ["dep:thiserror", "dep:hex", "dep:reqwest", "dep:serde_json"]
+
+[package.metadata.docs.rs]
+all-features = true

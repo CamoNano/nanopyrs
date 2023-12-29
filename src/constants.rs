@@ -17,7 +17,7 @@ pub fn get_genesis_account() -> Account {
     Account::try_from("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3").unwrap()
 }
 
-/// https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103
+/// See [this](https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103) for details
 pub mod epoch_signers {
     use crate::Account;
     use super::*;

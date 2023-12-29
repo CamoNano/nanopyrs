@@ -11,6 +11,7 @@ use curve25519_dalek::{
 pub use super::error::NanoError;
 pub use super::account::{Key, Account};
 
+/// Create a `SecretBytes<T>`
 #[macro_export]
 macro_rules! secret {
     ($data: expr) => {
@@ -20,6 +21,7 @@ macro_rules! secret {
         }
     };
 }
+/// Create a `Scalar`
 #[macro_export]
 macro_rules! scalar {
     ($data: expr) => {
@@ -32,7 +34,8 @@ macro_rules! scalar {
 
 
 
-#[derive(Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+/// A wrapper for `[u8; T]` that automatically calls `zeroize` when dropped
+#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct SecretBytes<const T: usize> {
     bytes: Box<[u8; T]>
 }
@@ -45,10 +48,6 @@ impl<const T: usize> SecretBytes<T> {
     }
     pub fn as_ptr(&self) -> *const u8 {
         self.bytes.as_ptr()
-    }
-    /// Cloning is made intentionally difficult for safety reasons
-    pub fn dangerous_clone(&self) -> SecretBytes<T> {
-        SecretBytes { bytes: self.bytes.clone() }
     }
 }
 impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
@@ -76,7 +75,8 @@ impl<const T: usize> Debug for SecretBytes<T> {
 
 
 
-#[derive(Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+/// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
+#[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Scalar {
     scalar: Box<RawScalar>
 }
@@ -109,15 +109,10 @@ impl Scalar {
     pub fn as_slice(&self) -> &[u8] {
         self.as_bytes().as_slice()
     }
-    /// Cloning is made intentionally difficult for safety reasons
-    pub fn dangerous_clone(&self) -> Scalar {
-        Scalar {scalar: self.scalar.clone()}
-    }
 }
 
 auto_from_impl!(From, SecretBytes<32>, Scalar);
 auto_from_impl!(From, SecretBytes<64>, Scalar);
-auto_from_impl!(From, Scalar, RawScalar);
 
 impl From<&SecretBytes<32>> for Scalar {
     fn from(value: &SecretBytes<32>) -> Self {
@@ -150,8 +145,8 @@ impl From<RawScalar> for Scalar {
         scalar
     }
 }
-impl From<&Scalar> for RawScalar {
-    fn from(value: &Scalar) -> Self {
+impl From<Scalar> for RawScalar {
+    fn from(value: Scalar) -> Self {
         value.as_ref().to_owned()
     }
 }

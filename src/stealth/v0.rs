@@ -117,7 +117,7 @@ impl StealthKeysTrait for StealthKeysV0 {
             versions: self.versions,
             compressed_spend_key: spend.compress(),
             point_spend_key: spend,
-            private_view: self.private_view.dangerous_clone()
+            private_view: self.private_view.clone()
         }
     }
 
@@ -126,7 +126,7 @@ impl StealthKeysTrait for StealthKeysV0 {
     }
 
     fn notification_key(&self) -> Key {
-        Key::from_scalar(self.private_spend.dangerous_clone())
+        Key::from_scalar(self.private_spend.clone())
     }
 
     fn get_versions(&self) -> StealthAccountVersions {

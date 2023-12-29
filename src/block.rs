@@ -6,23 +6,35 @@ use std::fmt::Display;
 
 pub use super::nanopy::{get_local_work, check_work};
 
+/// The type of a Nano block
+///
+/// Technically, the `type` field on a Nano block is either `state`, or one of the legacy variants;
+/// The sub-type of a `state` block is contained in another field, `subtype`.
+/// However, for simplicity, this library assumes that all blocks are of type `state`, unless specified as `legacy`.
 #[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
 pub enum BlockType {
+    /// A `state` block, with `subtype` set to `change`
     Change,
+    /// A `state` block, with `subtype` set to `send`
     Send,
+    /// A `state` block, with `subtype` set to `receive`
     Receive,
+    /// A `state` block, with `subtype` set to `epoch`
     Epoch,
+    /// A `legacy` block
     Legacy(String)
 }
 impl BlockType {
+    /// Returns `true` if the block's type is `state`, `false` otherwise
     pub fn is_state(&self) -> bool {
         !self.is_legacy()
     }
+    /// Returns `true` if the block's type is one of the `legacy` variants, `false` otherwise
     pub fn is_legacy(&self) -> bool {
         matches!(self, BlockType::Legacy(_))
     }
 
-    /// Only to be used for `state` blocks!
+    /// Create a `state` `BlockType` from a `subtype`
     pub fn from_subtype_string(value: &str) -> Option<BlockType> {
         match value {
             "change" => Some(BlockType::Change),
@@ -46,6 +58,7 @@ impl Display for BlockType {
     }
 }
 
+/// A Nano block. See the official [Nano documentation](https://docs.nano.org/protocol-design/blocks/) for details.
 #[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
 pub struct Block {
     pub block_type: BlockType,

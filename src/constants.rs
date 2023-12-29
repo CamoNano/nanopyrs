@@ -17,7 +17,7 @@ pub fn get_genesis_account() -> Account {
     Account::try_from("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3").unwrap()
 }
 
-/// See [this](https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103) for details
+/// See [here](https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103) for details
 pub mod epoch_signers {
     use crate::Account;
     use super::*;
@@ -40,10 +40,13 @@ mod stealth {
     pub(crate) const STEALTH_PREFIX_LEN: usize = STEALTH_ACCOUNT_PREFIX.len();
     pub(crate) const ADDRESS_CHARS_SAMPLE_END: usize = STEALTH_PREFIX_LEN + ADDRESS_CHARS_SAMPLE_SIZE;
 
-    // The stealth account protocol has (currently) up to 8 versions.
+    /// The highest supported protocol version for `stealth_` accounts.
+    ///
+    /// Currently, only version `0` is supported.
+    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 0;
+    // The stealth account protocol has up to 8 versions.
     // Support for each version in an address is signaled by toggling bits in 1 byte, encoded in the address.
     // This improves backwards compatability, while still allowing new features to be added.
-    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 0;
     pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 7;
 
     /// intended to be used with `hashes::hazmat::get_category_seed`

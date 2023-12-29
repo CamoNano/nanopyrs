@@ -5,7 +5,9 @@ mod error;
 mod secrets;
 mod account;
 
+/// Various Nano-related constants
 pub mod constants;
+/// Various hash functions
 pub mod hashes;
 pub mod base32;
 pub mod signature;

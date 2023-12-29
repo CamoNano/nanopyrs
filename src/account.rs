@@ -22,6 +22,7 @@ use serde_json::Value as JsonValue;
 
 
 
+/// The private key of a `nano_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Key {
     private: Scalar
@@ -78,6 +79,7 @@ impl_op_ex_commutative!(* |a: &Key, b: &EdwardsPoint| -> Account {
 
 
 
+/// A `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Account {
     pub account: String,

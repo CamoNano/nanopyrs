@@ -2,6 +2,9 @@ use crate::{auto_from_impl, constants::*};
 use std::fmt::Display;
 use zeroize::Zeroize;
 
+/// Decode `StealthAccountVersions` from the compact `u8` representation.
+///
+/// You propably want `versions!()` instead.
 #[macro_export]
 macro_rules! version_bits {
     ( $version_bits: expr ) => {
@@ -12,6 +15,10 @@ macro_rules! version_bits {
     };
 }
 
+
+/// Create `StealthAccountVersions` with all of the given versions enabled.
+///
+/// Note that currently, only version `0` is supported.
 #[macro_export]
 macro_rules! versions {
     ( $($version: expr),* ) => {
@@ -37,6 +44,9 @@ pub struct StealthAccountVersions {
     supported_versions: [bool; 8]
 }
 impl StealthAccountVersions {
+    /// Create `StealthAccountVersions` with all of the given versions enabled.
+    ///
+    /// Note that currently, only version `0` is supported.
     pub fn new(versions: Vec<u8>) -> StealthAccountVersions {
         let mut version = StealthAccountVersions::default();
         for i in versions {

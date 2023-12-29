@@ -10,6 +10,10 @@ pub fn trim_json(value: String) -> String {
     value.trim_matches('\"').into()
 }
 
+pub fn to_uppercase_hex(bytes: &[u8]) -> String {
+    hex::encode(bytes).to_uppercase()
+}
+
 /// Get the keys in a Json map.
 pub fn map_keys_from_json(value: JsonValue) -> Result<Vec<String>, RpcError> {
     let keys: Vec<String> = RpcError::from_option(
@@ -93,11 +97,11 @@ pub fn block_to_json(block: Block) -> Map<String, JsonValue> {
     let mut json_block = Map::new();
     json_block.insert("type".into(), block_type.into());
     json_block.insert("account".into(), block.account.into());
-    json_block.insert("previous".into(), hex::encode(block.previous).into());
+    json_block.insert("previous".into(), to_uppercase_hex(&block.previous).into());
     json_block.insert("representative".into(), block.representative.into());
     json_block.insert("balance".into(), block.balance.to_string().into());
-    json_block.insert("link".into(), hex::encode(block.link).into());
-    json_block.insert("signature".into(), hex::encode(block.signature.to_bytes()).into());
+    json_block.insert("link".into(), to_uppercase_hex(&block.link).into());
+    json_block.insert("signature".into(), to_uppercase_hex(&block.signature.to_bytes()).into());
     json_block.insert("work".into(), hex::encode(block.work).into());
     json_block
 }

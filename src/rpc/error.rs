@@ -17,8 +17,6 @@ pub enum RpcError {
     ParseError(String),
     #[error("data was invalid")]
     InvalidData,
-    #[error("RPC returned error: {0}")]
-    ReturnedError(String),
     #[error("this action could not be completed")]
     CommandFailed,
     /// Cannot publish block of type `legacy`

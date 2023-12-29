@@ -6,7 +6,7 @@ use std::fmt::Display;
 
 pub use super::nanopy::{get_local_work, check_work};
 
-#[derive(Debug, Clone, PartialEq, Zeroize)]
+#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
 pub enum BlockType {
     Change,
     Send,
@@ -46,7 +46,7 @@ impl Display for BlockType {
     }
 }
 
-#[derive(Debug, Clone, Zeroize)]
+#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
 pub struct Block {
     pub block_type: BlockType,
     pub account: Account,

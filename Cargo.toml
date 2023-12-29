@@ -12,7 +12,7 @@ keywords = ["cryptocurrency", "nanocurrency", "nano"]
 [dependencies]
 curve25519-dalek = { version = "4.1.1" }
 blake2 = "0.10.6"
-bitvec = "0.20.4"
+bitvec = { version = "0.20.4", default-features = false, features = ["alloc"] }
 zeroize = { version = "1.6.0", features = ["zeroize_derive"] }
 auto_ops = "0.3.0"
 
@@ -25,7 +25,7 @@ serde_json = { version = "1.0.107", optional = true }
 tokio = { version = "1.35.1", features = ["rt"] }
 
 [features]
-default = []
+default = ["all"]
 all = ["stealth", "rpc"]
 stealth = []
 rpc = ["dep:thiserror", "dep:hex", "dep:reqwest", "dep:serde_json"]

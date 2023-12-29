@@ -1,4 +1,4 @@
-mod internal;
+mod request;
 mod parse;
 mod wrapped;
 mod error;

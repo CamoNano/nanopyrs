@@ -1,9 +1,8 @@
 use crate::{Account, Block};
-use super::internal::InternalRpc;
-use super::parse;
-use super::util::block_to_json;
+use super::{parse, request};
+use super::util::trim_json;
 use super::error::RpcError;
-use reqwest::{ClientBuilder, Proxy};
+use reqwest::{ClientBuilder, RequestBuilder, Proxy};
 use serde_json as json;
 use json::{
     Value as JsonValue,
@@ -11,78 +10,83 @@ use json::{
 };
 
 /// See the official [Nano RPC documentation](https://docs.nano.org/commands/rpc-protocol/) for details.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Rpc {
-    internal: InternalRpc
+    builder: RequestBuilder,
+    url: String,
+    proxy: Option<String>
 }
 impl Rpc {
     pub fn new(url: &str) -> Result<Rpc, RpcError> {
-        let client = ClientBuilder::new()
-            .build()?;
-        Ok(Rpc { internal: InternalRpc::new(url, client)? })
+        Ok(Rpc {
+            builder: ClientBuilder::new().build()?.post(url),
+            url: url.into(),
+            proxy: None
+        })
     }
 
     pub fn new_with_proxy(url: &str, proxy: &str) -> Result<Rpc, RpcError> {
-        let client = ClientBuilder::new()
-            .proxy(Proxy::all(proxy)?)
-            .build()?;
-        Ok(Rpc { internal: InternalRpc::new(url, client)? })
+        Ok(Rpc {
+            builder: ClientBuilder::new().proxy(Proxy::all(proxy)?).build()?.post(url),
+            url: url.into(),
+            proxy: Some(proxy.into())
+        })
     }
 
     /// Get the url of this RPC
     pub fn get_url(&self) -> String {
-        self.internal.url.clone()
+        self.url.clone()
     }
 
     /// Same as `command`, but *everything* must be set manually
     pub async fn _raw_request(&self, json: JsonValue) -> Result<JsonValue, RpcError> {
-        self.internal._raw_request(json).await
+        Ok(self.clone().builder
+            .json(&json)
+            .send().await?
+            .json().await?
+        )
     }
 
     /// Send a request to the node with `action` set to `[command]`, and setting the given `arguments`
-    pub async fn command(&self, command: &str, arguments: Map<String, JsonValue>) -> Result<JsonValue, RpcError> {
-        self.internal.command(command.to_owned(), arguments).await
+    pub async fn command(&self, command: &str, mut arguments: Map<String, JsonValue>) -> Result<JsonValue, RpcError> {
+        arguments.insert("action".into(), command.clone().into());
+
+        let raw_json = self._raw_request(JsonValue::Object(arguments)).await?;
+        if !raw_json["error"].is_null() {
+            return Err(RpcError::ReturnedError(trim_json(raw_json["error"].to_string())))
+        }
+        Ok(raw_json)
     }
 
 
     pub async fn account_balance(&self, account: &Account) -> Result<u128, RpcError> {
-        let raw_json = self.internal.account_balance(account.to_string(), Map::new()).await?;
-
-        parse::account_balance(raw_json).await
+        parse::account_balance(
+            request::account_balance(self, account).await?
+        ).await
     }
 
     /// Lists the account's blocks, starting at `head` (or the newest block if `head` is `None`), and going back at most `count` number of blocks.
     /// Will stop at first legacy block.
     pub async fn account_history(&self, account: &Account, count: usize, head: Option<[u8; 32]>) -> Result<Vec<Block>, RpcError> {
-        let mut arguments = Map::new();
-        arguments.insert("raw".into(), "true".into());
-        if let Some(head) = head {
-            arguments.insert("head".into(), hex::encode(head).into());
-        }
-
-        let raw_json = self.internal
-            .account_history(account.to_string(), count, arguments).await?;
-
-        parse::account_history(raw_json, account).await
+        parse::account_history(
+            request::account_history(self, account, count, head).await?, account
+        ).await
     }
 
     /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.
     pub async fn account_representative(&self, account: &Account) -> Result<Account, RpcError> {
-        let history = self.account_history(account, 1, None).await?;
-
-        parse::account_representative(history).await
+        parse::account_representative(
+            self.account_history(account, 1, None).await?
+        ).await
     }
 
     pub async fn accounts_balances(&self, accounts: &[Account]) -> Result<Vec<u128>, RpcError> {
         if accounts.is_empty() {
             return Ok(vec!());
         }
-
-        let accounts: Vec<String> = accounts.iter()
-            .map(|account| account.to_string()).collect();
-        let raw_json = self.internal.accounts_balances(&accounts, Map::new()).await?;
-
-        parse::accounts_balances(raw_json, accounts).await
+        parse::accounts_balances(
+            request::accounts_balances(self, accounts).await?, accounts
+        ).await
     }
 
     /// Returns the hash of the frontier (newest) block of the given accounts.
@@ -91,13 +95,9 @@ impl Rpc {
         if accounts.is_empty() {
             return Ok(vec!());
         }
-
-        let accounts: Vec<String> = accounts.iter()
-            .map(|account| account.to_string()).collect();
-        let raw_json = self.internal.accounts_frontiers(&accounts)
-            .await?["frontiers"].clone();
-
-        parse::accounts_frontiers(raw_json, accounts).await
+        parse::accounts_frontiers(
+            request::accounts_frontiers(self, accounts).await?, accounts
+        ).await
     }
 
     /// For each account, returns the receivable transactions as `Vec<(block_hash, amount)>`
@@ -105,18 +105,9 @@ impl Rpc {
         if accounts.is_empty() {
             return Ok(vec!());
         }
-
-        let mut arguments = Map::new();
-        arguments.insert("sorting".into(), "true".into());
-        arguments.insert("threshold".into(), threshold.to_string().into());
-
-        let accounts: Vec<String> = accounts.iter()
-            .map(|account| account.to_string()).collect();
-        let raw_json = self.internal
-            .accounts_receivable(&accounts, count, arguments).await?["blocks"]
-            .clone();
-
-        parse::accounts_receivable(raw_json, accounts).await
+        parse::accounts_receivable(
+            request::accounts_receivable(self, accounts, count, threshold).await?, accounts
+        ).await
     }
 
     /// If an account is not yet opened, its frontier will be returned as `None`
@@ -124,18 +115,16 @@ impl Rpc {
         if accounts.is_empty() {
             return Ok(vec!());
         }
-        let accounts: Vec<String> = accounts.iter()
-            .map(|account| account.to_string()).collect();
-        let raw_json = self.internal.accounts_representatives(&accounts).await?["representatives"].clone();
-
-        parse::accounts_representatives(raw_json, accounts).await
+        parse::accounts_representatives(
+            request::accounts_representatives(self, accounts).await?, accounts
+        ).await
     }
 
     /// Legacy blocks will return `None`
     pub async fn block_info(&self, hash: [u8; 32]) -> Result<Option<Block>, RpcError> {
-        let raw_json = self.internal.block_info(hex::encode(hash)).await?;
-
-        parse::block_info(raw_json).await
+        parse::block_info(
+            request::block_info(self, hash).await?
+        ).await
     }
 
     /// Legacy blocks will return `None`
@@ -143,36 +132,32 @@ impl Rpc {
         if hashes.is_empty() {
             return Ok(vec!());
         }
-        let hashes: Vec<String> = hashes.iter()
-            .map(hex::encode).collect();
-        let raw_json = self.internal.blocks_info(&hashes).await?["blocks"].clone();
-
-        parse::blocks_info(raw_json, hashes).await
+        parse::blocks_info(
+            request::blocks_info(self, hashes).await?, hashes
+        ).await
     }
 
     /// Returns the hash of the block
     pub async fn process(&self, block: Block) -> Result<[u8; 32], RpcError> {
-        let mut arguments = Map::new();
         let hash = block.hash();
-
-        if !block.block_type.is_state() {
-            return Err(RpcError::LegacyBlockType)
-        }
-        arguments.insert("subtype".into(), block.block_type.to_string().into());
-        arguments.insert("block".into(), JsonValue::Object(block_to_json(block)));
-
-        let raw_json = self.internal.process(arguments).await?;
-        parse::process(raw_json, hash).await
+        parse::process(
+            request::process(self, block).await?["blocks"].clone(), hash
+        ).await
     }
 
     /// Returns the generated work, assuming no error is encountered
     pub async fn work_generate(&self, work_hash: [u8; 32], custom_difficulty: Option<[u8; 8]>) -> Result<[u8; 8], RpcError> {
-        let mut map = Map::new();
-        if let Some(difficulty) = custom_difficulty {
-            map.insert("difficulty".into(), hex::encode(difficulty).into());
+        parse::work_generate(
+            request::work_generate(self, work_hash, custom_difficulty).await?, work_hash, custom_difficulty
+        ).await
+    }
+}
+impl Clone for Rpc {
+    fn clone(&self) -> Self {
+        Rpc {
+            builder: self.builder.try_clone().unwrap(),
+            url: self.url.clone(),
+            proxy: self.proxy.clone()
         }
-        let raw_json = self.internal.work_generate(hex::encode(work_hash), map).await?;
-
-        parse::work_generate(raw_json, work_hash, custom_difficulty).await
     }
 }

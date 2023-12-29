@@ -19,11 +19,10 @@ pub enum RpcError {
     InvalidData,
     #[error("RPC returned error: {0}")]
     ReturnedError(String),
-    #[error("no rpc could be found for this action")]
-    NoRPCs,
     #[error("this action could not be completed")]
     CommandFailed,
-    #[error("cannot publish block of 'legacy' type")]
+    /// Cannot publish block of type `legacy`
+    #[error("cannot publish block of type 'legacy'")]
     LegacyBlockType
 }
 impl RpcError {

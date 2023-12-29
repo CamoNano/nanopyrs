@@ -41,18 +41,20 @@ pub async fn account_representative(history: Vec<Block>) -> Result<Account, RpcE
     Ok(last_block.representative.clone())
 }
 
-pub async fn accounts_balances(raw_json: JsonValue, accounts: Vec<String>) -> Result<Vec<u128>, RpcError> {
+pub async fn accounts_balances(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<u128>, RpcError> {
     let mut balances = vec!();
-    for account in &accounts {
-        balances.push(u128_from_json(&raw_json["balances"][account]["balance"])?)
+    for account in accounts {
+        balances.push(u128_from_json(
+            &raw_json["balances"][account.to_string()]["balance"]
+        )?)
     }
     Ok(balances)
 }
 
-pub async fn accounts_frontiers(raw_json: JsonValue, accounts: Vec<String>) -> Result<Vec<[u8; 32]>, RpcError> {
+pub async fn accounts_frontiers(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<[u8; 32]>, RpcError> {
     let mut frontiers = vec!();
-    for account in &accounts {
-        let frontier = raw_json[account].clone();
+    for account in accounts {
+        let frontier = raw_json[account.to_string()].clone();
         if frontier.is_null() {
             frontiers.push([0; 32]);
             continue;
@@ -70,18 +72,18 @@ pub async fn accounts_frontiers(raw_json: JsonValue, accounts: Vec<String>) -> R
     Ok(frontiers)
 }
 
-pub async fn accounts_receivable(raw_json: JsonValue, accounts: Vec<String>) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
+pub async fn accounts_receivable(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
     let mut all_hashes = vec!();
-    for account in &accounts {
+    for account in accounts {
         let mut hashes = vec!();
 
-        let account_hashes = map_keys_from_json(raw_json[&account].clone());
+        let account_hashes = map_keys_from_json(raw_json[&account.to_string()].clone());
         if account_hashes.is_err() {
             continue;
         }
 
         for hash in account_hashes? {
-            let amount = u128_from_json(&raw_json[&account][&hash])?;
+            let amount = u128_from_json(&raw_json[&account.to_string()][&hash])?;
             let bytes = hex::decode(trim_json(hash))?;
             let bytes = bytes.try_into().or(Err(
                 RpcError::ParseError("failed to parse hashes".into())
@@ -94,10 +96,10 @@ pub async fn accounts_receivable(raw_json: JsonValue, accounts: Vec<String>) -> 
     Ok(all_hashes)
 }
 
-pub async fn accounts_representatives(raw_json: JsonValue, accounts: Vec<String>) -> Result<Vec<Option<Account>>, RpcError> {
+pub async fn accounts_representatives(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<Option<Account>>, RpcError> {
     let mut representatives = vec!();
     for account in accounts {
-        let representative = raw_json["representatives"][account].clone();
+        let representative = raw_json["representatives"][account.to_string()].clone();
         if representative.is_null() {
             representatives.push(None)
         }
@@ -122,9 +124,11 @@ pub async fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> 
 }
 
 /// Legacy blocks will return `None`
-pub async fn blocks_info(raw_json: JsonValue, hashes: Vec<String>) -> Result<Vec<Option<Block>>, RpcError> {
+pub async fn blocks_info(raw_json: JsonValue, hashes: &[[u8; 32]]) -> Result<Vec<Option<Block>>, RpcError> {
     let mut blocks = vec!();
     for hash in hashes {
+        let hash = hex::encode(hash).to_uppercase();
+
         if trim_json(raw_json["blocks"][&hash]["type"].to_string()) != "state" {
             blocks.push(None)
         }
@@ -262,9 +266,9 @@ mod tests {
                         }
                     }
                 }),
-                vec!(
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".into(),
-                    "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7".into()
+                &vec!(
+                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap(),
+                    "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7".try_into().unwrap()
                 )
             )
         ).unwrap();
@@ -280,9 +284,9 @@ mod tests {
                         "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7": "6A32397F4E95AF025DE29D9BF1ACE864D5404362258E06489FABDBA9DCCC046F"
                     }
                 }),
-                vec!(
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".into(),
-                    "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7".into()
+                &vec!(
+                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap(),
+                    "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7".try_into().unwrap()
                 )
             )
         ).unwrap();
@@ -298,9 +302,9 @@ mod tests {
                         "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3": ["4C1FEEF0BEA7F50BE35489A1233FE002B212DEA554B55B1B470D78BD8F210C74"]
                     }
                 }),
-                vec!(
-                    "nano_1111111111111111111111111111111111111111111111111117353trpda".into(),
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".into()
+                &vec!(
+                    "nano_1111111111111111111111111111111111111111111111111117353trpda".try_into().unwrap(),
+                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap()
                 )
             )
         ).unwrap();
@@ -316,9 +320,9 @@ mod tests {
                         "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"
                     }
                 }),
-                vec!(
-                    "nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5".into(),
-                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".into()
+                &vec!(
+                    "nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5".try_into().unwrap(),
+                    "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap()
                 )
             )
         ).unwrap();
@@ -382,7 +386,7 @@ mod tests {
                         }
                     }
                 }),
-                vec!("87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9".into())
+                &vec!(hex::decode("87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9").unwrap().try_into().unwrap())
             )
         ).unwrap();
     }

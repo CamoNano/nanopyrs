@@ -1,11 +1,14 @@
 use super::RpcError;
 use crate::{Account, Block, BlockType};
 
-pub use super::internal::trim_json;
 pub use serde_json::{
     Value as JsonValue,
     Map
 };
+
+pub fn trim_json(value: String) -> String {
+    value.trim_matches('\"').into()
+}
 
 /// Get the keys in a Json map.
 pub fn map_keys_from_json(value: JsonValue) -> Result<Vec<String>, RpcError> {

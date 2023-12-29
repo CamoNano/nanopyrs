@@ -1,4 +1,4 @@
-// Copyright (c) 2023 npy0
+// Parts Copyright (c) 2023 npy0
 
 // This is (mostly) a rust re-write of nanopy, a Python library for Nano by npy0.
 // Shouldn't this be called 'nanors' since the 'py' in 'nanopy' means Python? Nanors was taken, oh well.

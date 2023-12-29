@@ -12,7 +12,7 @@ Things may or may not work before version `1.0.0`.
 
 ## RPC
 
-RPC functionality is enabled by the `rpc` feature, which is **enabled by default**.
+RPC functionality is enabled by the `rpc` feature, which is **disabled by default**.
 
 Currently, only the following commands are officially supported: `account_balance`, `account_history`, `account_representative`, `accounts_balances`, `accounts_frontiers`, `accounts_receivable`, `accounts_representatives`, `block_info`, `blocks_info`, `process`, `work_generate`
 

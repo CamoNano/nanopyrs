@@ -53,7 +53,7 @@ impl Rpc {
 
     /// Send a request to the node with `action` set to `[command]`, and setting the given `arguments`
     pub async fn command(&self, command: &str, mut arguments: Map<String, JsonValue>) -> Result<JsonValue, RpcError> {
-        arguments.insert("action".into(), command.clone().into());
+        arguments.insert("action".into(), command.into());
 
         let raw_json = self._raw_request(JsonValue::Object(arguments)).await?;
         Ok(raw_json)

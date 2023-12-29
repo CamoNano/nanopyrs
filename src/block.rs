@@ -58,7 +58,9 @@ pub struct Block {
     pub work: [u8; 8]
 }
 impl Block {
+    /// Check whether this block follows the rules for an `epoch` block
     pub fn follows_epoch_rules(&self, previous: &Block) -> bool {
+        self.block_type == BlockType::Epoch &&
         self.balance == previous.balance &&
         self.representative == previous.representative
     }
@@ -68,6 +70,7 @@ impl Block {
         hash_block(self)
     }
 
+    /// Get the hash for which this block must include valid work for
     pub fn work_hash(&self) -> [u8; 32] {
         if self.previous == [0; 32] {
             self.account.compressed.to_bytes()
@@ -77,23 +80,31 @@ impl Block {
     }
 
 
+    /// Interpret the `link` field as an account
     pub fn link_as_account(&self) -> Result<Account, NanoError> {
+        // if self.block_type != BlockType::Send {
+        //     return Err(NanoError::InvalidFormatting)
+        // }
         Account::try_from(self.link)
     }
 
 
+    /// Sign this block with the given `Key`, returning a `Signature`
     pub fn get_signature(&self, private_key: &Key) -> Signature {
         sign_message(&self.hash(), private_key)
     }
 
+    /// Set this block's `signature` field to the given `Signature`
     pub fn set_signature(&mut self, signature: Signature) {
         self.signature = signature
     }
 
+    /// Sign this block with the given `Key`, and set this block's `signature` field to the resulting `Signature`
     pub fn sign(&mut self, private_key: &Key) {
         self.set_signature(self.get_signature(private_key))
     }
 
+    /// Check if the signature for this block is valid
     pub fn has_valid_signature(&self) -> bool {
         if self.block_type != BlockType::Epoch {
             // "normal" block
@@ -115,18 +126,22 @@ impl Block {
     }
 
 
+    /// Get work using the local CPU (likely very slow)
     pub fn get_local_work(&self, difficulty: [u8; 8]) -> [u8; 8] {
         get_local_work(self.work_hash(), difficulty)
     }
 
+    /// Set this block's `work` field to the given bytes
     pub fn set_work(&mut self, work: [u8; 8]) {
         self.work = work
     }
 
+    /// Get work using the local CPU (likely very slow), and set this block's `work` field to the resulting bytes
     pub fn local_work(&mut self, work: [u8; 8]) {
         self.work = self.get_local_work(work)
     }
 
+    /// Check if the work for this block is valid, given a difficulty target
     pub fn has_valid_work(&self, difficulty: [u8; 8]) -> bool {
         if self.block_type == BlockType::Epoch {
             return true

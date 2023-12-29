@@ -31,6 +31,7 @@ fn is_valid_version(version: u8) -> bool {
     version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
 }
 
+/// Signals the version(s) which a `stealth_` account supports
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Zeroize)]
 pub struct StealthAccountVersions {
     supported_versions: [bool; 8]
@@ -58,6 +59,9 @@ impl StealthAccountVersions {
         self.supported_versions[version as usize] = false;
     }
 
+    /// Returns whether the `stealth_` account supports the version.
+    ///
+    /// Will always return `false` if this software does not support the given version.
     pub fn supports_version(&self, version: u8) -> bool {
         if !is_valid_version(version) {
             return false
@@ -65,12 +69,14 @@ impl StealthAccountVersions {
         self.supported_versions[version as usize]
     }
 
+    /// Returns the highest version that is supported by both the `stealth_` account and this software
     pub fn highest_supported_version(&self) -> Option<u8> {
         (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
             .rev()
             .find(|&version| self.supports_version(version))
     }
 
+    /// Encode the version support to a `u8`
     pub fn encode_to_bits(&self) -> u8 {
         let mut bits: u8 = 0;
         for (i, supports_version) in self.supported_versions.into_iter().enumerate() {
@@ -81,6 +87,7 @@ impl StealthAccountVersions {
         bits
     }
 
+    /// Decode the version support from a `u8`
     pub fn decode_from_bits(bits: u8) -> StealthAccountVersions {
         let mut versions = [false; 8];
         for (i, version) in versions.iter_mut().enumerate() {

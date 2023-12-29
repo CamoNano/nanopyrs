@@ -4,7 +4,9 @@ Mid- and low-level access to functions and data types related to the Nano crypto
 
 This is, partially, a Rust rewrite of the Python [nanopy](https://github.com/npy0/nanopy) library. `nanopyrs` was initially part of another project, so some behaviors may seem odd.
 
-There is very little documentation at this time.
+There is not very much documentation at this time.
+
+Things may or may not work before version `1.0.0`.
 
 *Use at your own risk. I cannot guarantee that this library is perfect.*
 

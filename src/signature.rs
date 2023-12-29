@@ -18,10 +18,12 @@ impl Signature {
         self.into()
     }
 
+    /// Sign the `message` with the `Key`, returning a `Signature`
     pub fn new(message: &[u8], key: &Key) -> Signature {
         key.sign_message(message)
     }
 
+    /// Check if the account's signature for the `message` is valid
     pub fn is_valid(&self, message: &[u8], account: &Account) -> bool {
         account.is_valid_signature(message, *self)
     }

@@ -1,5 +1,7 @@
 use super::Account;
 
+pub const ACCOUNT_PREFIX: &str = "nano_";
+
 /// 0.000000000000000000000000000001 (10<sup>-30</sup>) Nano
 pub const ONE_RAW:        u128 = 1;
 /// 0.000000001 (10<sup>-9</sup>) Nano (lol)
@@ -15,11 +17,12 @@ pub fn get_genesis_account() -> Account {
     Account::try_from("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3").unwrap()
 }
 
-// https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103
+/// https://github.com/nanocurrency/nano-node/blob/220ac3de022c61ead2611a1fe2703b3fe4726eae/nano/secure/common.cpp#L103
 pub mod epoch_signers {
     use crate::Account;
     use super::*;
 
+    /// This happens to be the genesis account
     pub fn get_v1_epoch_signer() -> Account {
         get_genesis_account()
     }
@@ -31,10 +34,10 @@ pub mod epoch_signers {
 
 #[cfg(feature = "stealth")]
 mod stealth {
-    pub const STEALTH_PREFIX: &str = "stealth_";
+    pub const STEALTH_ACCOUNT_PREFIX: &str = "stealth_";
     pub(crate) const ADDRESS_CHARS_SAMPLE_SIZE: usize = 8;
 
-    pub(crate) const STEALTH_PREFIX_LEN: usize = STEALTH_PREFIX.len();
+    pub(crate) const STEALTH_PREFIX_LEN: usize = STEALTH_ACCOUNT_PREFIX.len();
     pub(crate) const ADDRESS_CHARS_SAMPLE_END: usize = STEALTH_PREFIX_LEN + ADDRESS_CHARS_SAMPLE_SIZE;
 
     // The stealth account protocol has (currently) up to 8 versions.
@@ -43,7 +46,9 @@ mod stealth {
     pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 0;
     pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 7;
 
+    /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;
+    /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const VIEW_CONSTANTS_X_INDEX: u32 = 1;
 }
 #[cfg(feature = "stealth")]

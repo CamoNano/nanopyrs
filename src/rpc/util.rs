@@ -7,6 +7,7 @@ pub use serde_json::{
     Map
 };
 
+/// Get the keys in a Json map.
 pub fn map_keys_from_json(value: JsonValue) -> Result<Vec<String>, RpcError> {
     let keys: Vec<String> = RpcError::from_option(
         value.as_object()
@@ -46,7 +47,7 @@ pub fn block_from_json(block: &JsonValue, block_type: BlockType) -> Result<Block
     })
 }
 
-/// specific to account_history
+/// Specific to `account_history`
 pub(crate) fn block_from_history_json(block: &JsonValue) -> Result<Block, RpcError> {
     let block_type = trim_json(block["type"].to_string());
     let block_type = if &block_type == "state" {
@@ -62,7 +63,7 @@ pub(crate) fn block_from_history_json(block: &JsonValue) -> Result<Block, RpcErr
     block_from_json(block, RpcError::from_option(block_type)?)
 }
 
-/// specific to block_info and blocks_info
+/// Specific to `block_info` and `blocks_info`
 pub(crate) fn block_from_info_json(block: &JsonValue) -> Result<Block, RpcError> {
     let contents = block["contents"].clone();
     let block_type = trim_json(contents["type"].to_string());
@@ -98,6 +99,7 @@ pub fn block_to_json(block: Block) -> Map<String, JsonValue> {
     json_block
 }
 
+/// Sanity check to ensure that no overflow occurs
 pub fn balances_sanity_check(blocks: &[Block]) -> Result<(), RpcError> {
     let mut total: u128 = 0;
     let mut overflow: bool;

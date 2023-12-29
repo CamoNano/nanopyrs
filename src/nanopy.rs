@@ -52,14 +52,17 @@ pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoEr
     try_compressed_from_slice(key)
 }
 
-pub fn get_account_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
-    blake2b256(&[seed.as_slice(), &i.to_be_bytes()].concat())
+/// Return the "sub"-seed for the seed's account
+pub fn get_account_seed(master_seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
+    blake2b256(&[master_seed.as_slice(), &i.to_be_bytes()].concat())
 }
 
+/// Return the private key, in `Scalar` form, for the seed's account
 pub fn get_account_scalar(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
     blake2b_scalar(get_account_seed(master_seed, i).as_ref())
 }
 
+/// Get work using the local CPU (likely very slow)
 pub fn get_local_work(block_hash: [u8; 32], difficulty: [u8; 8]) -> [u8; 8] {
     let mut data: [u8; 40] = [
         [0; 8].as_slice(), &block_hash
@@ -87,18 +90,21 @@ pub fn get_local_work(block_hash: [u8; 32], difficulty: [u8; 8]) -> [u8; 8] {
     }
 }
 
-pub fn check_work(previous_hash: [u8; 32], difficulty: [u8; 8], work: [u8; 8]) -> bool {
+/// Check if the given work is valid, given a difficulty target
+pub fn check_work(work_hash: [u8; 32], difficulty: [u8; 8], work: [u8; 8]) -> bool {
     let mut work = work;
     work.reverse();
 
     let mut bytes = blake2b_work(&
-        [work.as_slice(), &previous_hash].concat()
+        [work.as_slice(), &work_hash].concat()
     );
     bytes.reverse();
 
     bytes >= difficulty
 }
 
+/// Given a specific `r` value, sign the `message` with the `Key`, returning a `Signature`.
+///
 /// **DANGEROUS! Don't use unless you know what you're doing.**
 pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Signature {
     let public_key = private_key.to_account().compressed.to_bytes();
@@ -119,7 +125,9 @@ pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Sig
     }
 }
 
-/// This function does not produce identical signatures to nanopy.
+/// Sign the `message` with the `Key`, returning a `Signature`.
+///
+/// This function does **not** produce identical signatures to the original Python `nanopy` library.
 pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
     let r = blake2b_scalar(
         &[private_key.as_scalar().as_bytes(), message].concat()
@@ -127,7 +135,7 @@ pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
     sign_message_with_r(message, private_key, &r)
 }
 
-#[allow(non_snake_case)]
+/// Check if the account's `signature` for the `message` is valid
 pub fn is_valid_signature(message: &[u8], signature: Signature, public_key: &Account) -> bool {
     let r_bytes: [u8; 32] = signature.r.compress().to_bytes();
     let message = scalar!(blake2b512(

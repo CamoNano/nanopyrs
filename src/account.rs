@@ -44,10 +44,12 @@ impl Key {
         &self.private
     }
 
+    /// Sign the `message` with this key, returning a `Signature`
     pub fn sign_message(&self, message: &[u8]) -> Signature {
         sign_message(message, self)
     }
 
+    /// Sign the `block` with this key, returning a `Signature`
     pub fn sign_block(&self, block: &Block) -> Signature {
         self.sign_message(&block.hash())
     }
@@ -107,6 +109,7 @@ impl Account {
         Account::try_from(account).is_ok()
     }
 
+    /// Check the validity of a signature made by this account's private key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         is_valid_signature(message, signature, self)
     }

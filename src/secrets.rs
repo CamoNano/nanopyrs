@@ -81,16 +81,19 @@ pub struct Scalar {
     scalar: Box<RawScalar>
 }
 impl Scalar {
+    /// From 32 bytes, manipulating them as needed
     pub fn from_bytes_mod_order(mut bytes: [u8; 32]) -> Scalar {
         let raw = RawScalar::from_bytes_mod_order(bytes);
         bytes.zeroize();
         Scalar::from(raw)
     }
+    /// From 64 bytes, manipulating them as needed
     pub fn from_bytes_mod_order_wide(mut bytes: [u8; 64]) -> Scalar {
         let raw = RawScalar::from_bytes_mod_order_wide(&bytes);
         bytes.zeroize();
         Scalar::from(raw)
     }
+    /// From 32 bytes, keeping them exactly the same
     pub fn from_canonical_bytes(mut bytes: [u8; 32]) -> Result<Scalar, NanoError> {
         let raw = RawScalar::from_canonical_bytes(bytes);
         if raw.is_none().into() {

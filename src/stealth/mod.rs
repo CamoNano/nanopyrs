@@ -1,18 +1,17 @@
 mod version;
-
 mod v0;
 
-pub mod hazmat {
-    pub mod v0 {
-        pub use crate::stealth::v0::*;
-    }
-}
+// pub mod hazmat {
+//     pub mod v0 {
+//         pub use crate::stealth::v0::*;
+//     }
+// }
 
 use crate::{
     version_bits,
     base32,
-    NanoError, Key, Account, Signature, SecretBytes,
-    constants::{STEALTH_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
+    NanoError, Key, Account, Block, Signature, SecretBytes,
+    constants::{STEALTH_ACCOUNT_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
 };
 use v0::{StealthKeysV0, StealthViewKeysV0, StealthAccountV0};
 use std::fmt::Display;
@@ -49,10 +48,12 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
     fn to_view_keys(&self) -> Self::ViewKeysType;
     fn to_stealth_account(&self) -> Self::AccountType;
 
-    /// Account for "notification" transactions to be sent to, if applicable
     fn notification_key(&self) -> Key;
     fn sign_message(&self, message: &[u8]) -> Signature {
         self.notification_key().sign_message(message)
+    }
+    fn sign_block(&self, block: &Block) -> Signature {
+        self.sign_message(&block.hash())
     }
 
     fn get_versions(&self) -> StealthAccountVersions;
@@ -84,19 +85,26 @@ impl StealthKeys {
         self.into()
     }
 
-    /// Account for "notification" transactions to be sent to, if applicable
+    /// Key of the account for "notification" transactions to be sent to, if applicable
     pub fn notification_key(&self) -> Key {
         unwrap_enum!(StealthKeys, self).notification_key()
     }
 
+    /// Sign the `message` with the notification key, returning a `Signature`
     pub fn sign_message(&self, message: &[u8]) -> Signature {
         self.notification_key().sign_message(message)
     }
+    /// Sign the `block` with the notification key, returning a `Signature`
+    pub fn sign_block(&self, block: &Block) -> Signature {
+        self.sign_message(&block.hash())
+    }
 
+    /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
         unwrap_enum!(StealthKeys, self).get_versions()
     }
 
+    /// Calculate the shared secret between this key and the given account.
     pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
         unwrap_enum!(StealthKeys, self).receiver_ecdh(sender_account)
     }
@@ -118,7 +126,6 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Self;
     fn to_stealth_account(&self) -> Self::AccountType;
 
-    /// Account for "notification" transactions to be sent to, if applicable
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account().is_valid_signature(message, signature)
@@ -162,14 +169,17 @@ impl StealthViewKeys {
         unwrap_enum!(StealthViewKeys, self).notification_account()
     }
 
+    /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account().is_valid_signature(message, signature)
     }
 
+    /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
         unwrap_enum!(StealthViewKeys, self).get_versions()
     }
 
+    /// Calculate the shared secret between this key and the given account.
     pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
         unwrap_enum!(StealthViewKeys, self).receiver_ecdh(sender_account)
     }
@@ -237,7 +247,6 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
         Self::from_data(account, &data)
     }
 
-    /// Account for "notification" transactions to be sent to, if applicable
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account().is_valid_signature(message, signature)
@@ -269,7 +278,7 @@ impl StealthAccount {
         if account.len() < ADDRESS_CHARS_SAMPLE_END {
             return Err(NanoError::InvalidLength)
         }
-        if &account[..STEALTH_PREFIX_LEN] != STEALTH_PREFIX {
+        if &account[..STEALTH_PREFIX_LEN] != STEALTH_ACCOUNT_PREFIX {
             return Err(NanoError::InvalidFormatting)
         }
         let address_sample = &account[STEALTH_PREFIX_LEN..ADDRESS_CHARS_SAMPLE_END];
@@ -288,10 +297,12 @@ impl StealthAccount {
         unwrap_enum!(StealthAccount, self).notification_account()
     }
 
+    /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account().is_valid_signature(message, signature)
     }
 
+    /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
         unwrap_enum!(StealthAccount, self).get_versions()
     }
@@ -300,6 +311,7 @@ impl StealthAccount {
         Self::from_string(account).is_ok()
     }
 
+    /// Calculate the shared secret between this account and the given key.
     pub fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32> {
         unwrap_enum!(StealthAccount, self).sender_ecdh(sender_key)
     }

@@ -27,15 +27,11 @@ pub async fn account_history(raw_json: JsonValue, account: &Account) -> Result<V
             }
         }
 
-        blocks.push(block)
-    }
-
-    if let Some(newest_block) = blocks.get(0) {
-        if !newest_block.has_valid_signature() {
+        if !block.has_valid_signature() {
             return Err(RpcError::InvalidData);
         }
-    } else if !json_blocks.is_empty() {
-        return Err(RpcError::InvalidData);
+
+        blocks.push(block)
     }
     Ok(blocks)
 }

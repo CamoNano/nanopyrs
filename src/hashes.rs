@@ -25,16 +25,20 @@ pub mod hazmat {
 #[cfg(feature = "stealth")]
 use hazmat::get_category_seed;
 
-/// equivalent to `hazmat::get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)`
+/// Returns the wallet's master spend seed.
+///
+/// Equivalent to `hazmat::get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)`
 #[cfg(feature = "stealth")]
-pub fn get_stealth_spend_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
-    get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)
+pub fn get_stealth_spend_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
+    get_category_seed(master_seed, SPEND_CONSTANTS_X_INDEX)
 }
 
-/// equivalent to `hazmat::get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)`
+/// Returns the wallet's master view seed.
+///
+/// Equivalent to `hazmat::get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)`\
 #[cfg(feature = "stealth")]
-pub fn get_stealth_view_seed(seed: &SecretBytes<32>) -> SecretBytes<32> {
-    get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)
+pub fn get_stealth_view_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
+    get_category_seed(master_seed, VIEW_CONSTANTS_X_INDEX)
 }
 
 type Blake2b512 = _Blake2b<U64>;

@@ -1,6 +1,6 @@
 [package]
 name = "nanopyrs"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 description = "Rust rewrite of the Python nanopy library"
 license = "MIT"
@@ -25,7 +25,7 @@ serde_json = { version = "1.0.107", optional = true }
 tokio = { version = "1.35.1", features = ["rt"] }
 
 [features]
-default = ["all"]
+default = []
 all = ["stealth", "rpc"]
 stealth = []
 rpc = ["dep:thiserror", "dep:hex", "dep:reqwest", "dep:serde_json"]

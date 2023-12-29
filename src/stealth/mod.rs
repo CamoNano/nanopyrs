@@ -8,6 +8,7 @@ mod v0;
 // }
 
 use crate::{
+    auto_from_impl,
     version_bits,
     base32,
     NanoError, Key, Account, Block, Signature, SecretBytes,
@@ -192,21 +193,14 @@ impl StealthViewKeys {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
     }
 }
-impl From<StealthViewKeys> for SecretBytes<65> {
-    fn from(value: StealthViewKeys) -> Self {
-        (&value).into()
-    }
-}
+
+auto_from_impl!(From, StealthViewKeys, SecretBytes<65>);
+auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeys);
+auto_from_impl!(From, StealthKeys, StealthViewKeys);
+
 impl From<&StealthViewKeys> for SecretBytes<65> {
     fn from(value: &StealthViewKeys) -> Self {
         unwrap_enum!(StealthViewKeys, value).into()
-    }
-}
-impl TryFrom<SecretBytes<65>> for StealthViewKeys {
-    type Error = NanoError;
-
-    fn try_from(value: SecretBytes<65>) -> Result<Self, NanoError> {
-        (&value).try_into()
     }
 }
 impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
@@ -219,11 +213,6 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
             Some(0) => Ok(StealthViewKeys::V0(StealthViewKeysV0::try_from(value)?)),
             _ => Err(NanoError::InvalidVersions(versions))
         }
-    }
-}
-impl From<StealthKeys> for StealthViewKeys {
-    fn from(value: StealthKeys) -> Self {
-        (&value).into()
     }
 }
 impl From<&StealthKeys> for StealthViewKeys {
@@ -326,21 +315,15 @@ impl StealthAccount {
         )
     }
 }
-impl From<StealthKeys> for StealthAccount {
-    fn from(value: StealthKeys) -> Self {
-        (&value).into()
-    }
-}
+
+auto_from_impl!(From, StealthKeys, StealthAccount);
+auto_from_impl!(From, StealthViewKeys, StealthAccount);
+
 impl From<&StealthKeys> for StealthAccount {
     fn from(value: &StealthKeys) -> Self {
         match value {
             StealthKeys::V0(v1) => StealthAccount::V0(v1.to_stealth_account())
         }
-    }
-}
-impl From<StealthViewKeys> for StealthAccount {
-    fn from(value: StealthViewKeys) -> Self {
-        (&value).into()
     }
 }
 impl From<&StealthViewKeys> for StealthAccount {

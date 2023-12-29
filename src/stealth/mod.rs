@@ -66,6 +66,7 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
     }
 }
 
+/// The private keys of a `stealth_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
     V0(StealthKeysV0)
@@ -141,6 +142,8 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     }
 }
 
+
+/// The private view keys of a `stealth_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
     V0(StealthViewKeysV0)
@@ -253,6 +256,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
     }
 }
 
+/// A `stealth_` account
 #[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
 pub enum StealthAccount {
     V0(StealthAccountV0)

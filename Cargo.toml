@@ -25,7 +25,7 @@ serde_json = { version = "1.0.107", optional = true }
 tokio = { version = "1.35.1", features = ["rt"] }
 
 [features]
-default = ["all"]
+default = []
 all = ["stealth", "rpc"]
 stealth = []
 rpc = ["dep:thiserror", "dep:hex", "dep:reqwest", "dep:serde_json"]

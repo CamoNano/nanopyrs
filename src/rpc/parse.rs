@@ -72,6 +72,7 @@ pub fn accounts_frontiers(raw_json: JsonValue, accounts: &[Account]) -> Result<V
     Ok(frontiers)
 }
 
+#[allow(clippy::type_complexity)]
 pub fn accounts_receivable(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
     let mut all_hashes = vec!();
     for account in accounts {

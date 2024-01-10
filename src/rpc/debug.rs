@@ -34,7 +34,7 @@ impl<T> Response<T> {
         Response {
             raw_request: None,
             raw_response: None,
-            result: result
+            result
         }
     }
 }
@@ -78,12 +78,12 @@ impl DebugRpc {
         let response_json = self.clone().builder
             .json(&json)
             .send().await
-            .map_err(|err| RpcError::ReqwestError(err))
+            .map_err(RpcError::ReqwestError)
             .map(|response| response.json::<JsonValue>());
 
         let result = match response_json {
             Ok(response) => response.await
-                .map_err(|err| RpcError::ReqwestError(err)),
+                .map_err(RpcError::ReqwestError),
             Err(err) => Err(err)
         };
 
@@ -107,7 +107,7 @@ impl DebugRpc {
 
 
     pub async fn account_balance(&self, account: &Account) -> Response<u128> {
-        let response = request!(&self, encode::account_balance(account));
+        let response = request!(self, encode::account_balance(account));
         let result = match response.result {
             Ok(json) => parse::account_balance(json),
             Err(err) => Err(err)
@@ -118,7 +118,7 @@ impl DebugRpc {
     /// Lists the account's blocks, starting at `head` (or the newest block if `head` is `None`), and going back at most `count` number of blocks.
     /// Will stop at first legacy block.
     pub async fn account_history(&self, account: &Account, count: usize, head: Option<[u8; 32]>) -> Response<Vec<Block>> {
-        let response = request!(&self, encode::account_history(account, count, head));
+        let response = request!(self, encode::account_history(account, count, head));
         let result = match response.result {
             Ok(json) => parse::account_history(json, account),
             Err(err) => Err(err)
@@ -141,7 +141,7 @@ impl DebugRpc {
             return Response::no_request(Ok(vec!()))
         }
 
-        let response = request!(&self, encode::accounts_balances(accounts));
+        let response = request!(self, encode::accounts_balances(accounts));
         let result = match response.result {
             Ok(json) => parse::accounts_balances(json, accounts),
             Err(err) => Err(err)
@@ -156,7 +156,7 @@ impl DebugRpc {
             return Response::no_request(Ok(vec!()))
         }
 
-        let response = request!(&self, encode::accounts_frontiers(accounts));
+        let response = request!(self, encode::accounts_frontiers(accounts));
         let result = match response.result {
             Ok(json) => parse::accounts_frontiers(json, accounts),
             Err(err) => Err(err)
@@ -170,7 +170,7 @@ impl DebugRpc {
             return Response::no_request(Ok(vec!()))
         }
 
-        let response = request!(&self, encode::accounts_receivable(accounts, count, threshold));
+        let response = request!(self, encode::accounts_receivable(accounts, count, threshold));
         let result = match response.result {
             Ok(json) => parse::accounts_receivable(json, accounts),
             Err(err) => Err(err)
@@ -184,7 +184,7 @@ impl DebugRpc {
             return Response::no_request(Ok(vec!()))
         }
 
-        let response = request!(&self, encode::accounts_representatives(accounts));
+        let response = request!(self, encode::accounts_representatives(accounts));
         let result = match response.result {
             Ok(json) => parse::accounts_representatives(json, accounts),
             Err(err) => Err(err)
@@ -194,7 +194,7 @@ impl DebugRpc {
 
     /// Legacy blocks will return `None`
     pub async fn block_info(&self, hash: [u8; 32]) -> Response<Option<Block>>{
-        let response = request!(&self, encode::block_info(hash));
+        let response = request!(self, encode::block_info(hash));
         let result = match response.result {
             Ok(json) => parse::block_info(json),
             Err(err) => Err(err)
@@ -208,7 +208,7 @@ impl DebugRpc {
             return Response::no_request(Ok(vec!()))
         }
 
-        let response = request!(&self, encode::blocks_info(hashes));
+        let response = request!(self, encode::blocks_info(hashes));
         let result = match response.result {
             Ok(json) => parse::blocks_info(json, hashes),
             Err(err) => Err(err)
@@ -223,7 +223,7 @@ impl DebugRpc {
         }
 
         let hash = block.hash();
-        let response = request!(&self, encode::process(block));
+        let response = request!(self, encode::process(block));
         let result = match response.result {
             Ok(json) => parse::process(json, hash),
             Err(err) => Err(err)
@@ -233,7 +233,7 @@ impl DebugRpc {
 
     /// Returns the generated work, assuming no error is encountered
     pub async fn work_generate(&self, work_hash: [u8; 32], custom_difficulty: Option<[u8; 8]>) -> Response<[u8; 8]> {
-        let response = request!(&self, encode::work_generate(work_hash, custom_difficulty));
+        let response = request!(self, encode::work_generate(work_hash, custom_difficulty));
         let result = match response.result {
             Ok(json) => parse::work_generate(json, work_hash, custom_difficulty),
             Err(err) => Err(err)

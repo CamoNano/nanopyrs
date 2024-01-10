@@ -24,6 +24,7 @@ macro_rules! map_response {
     };
 }
 
+#[derive(Debug)]
 pub struct Response<T> {
     pub raw_request: Option<JsonValue>,
     pub raw_response: Option<JsonValue>,

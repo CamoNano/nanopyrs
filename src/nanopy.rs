@@ -28,11 +28,11 @@ pub(crate) fn account_encode(key: &CompressedEdwardsY) -> String {
 
 pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoError> {
     if account.len() != 65 {
-        return Err(NanoError::InvalidLength)
+        return Err(NanoError::InvalidAddressLength)
     }
 
     if &account[..5] != "nano_" {
-        return Err(NanoError::InvalidFormatting)
+        return Err(NanoError::InvalidAddressPrefix)
     }
 
     let mut data = "1111".to_string();
@@ -47,7 +47,7 @@ pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoEr
     calculated_checksum.reverse();
 
     if checksum != calculated_checksum {
-        return Err(NanoError::InvalidChecksum)
+        return Err(NanoError::InvalidAddressChecksum)
     }
     try_compressed_from_slice(key)
 }

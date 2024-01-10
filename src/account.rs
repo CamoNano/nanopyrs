@@ -143,7 +143,7 @@ impl TryFrom<&String> for Account {
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         let compressed = account_decode(value)?;
         let point = compressed.decompress()
-            .ok_or(NanoError::InvalidPoint)?;
+            .ok_or(NanoError::InvalidCurvePoint)?;
         Ok(Account{account: value.to_string(), compressed, point})
     }
 }
@@ -158,7 +158,7 @@ impl TryFrom<&CompressedEdwardsY> for Account {
     fn try_from(value: &CompressedEdwardsY) -> Result<Self, Self::Error> {
         let account = account_encode(value);
         let point = value.decompress()
-            .ok_or(NanoError::InvalidPoint)?;
+            .ok_or(NanoError::InvalidCurvePoint)?;
         Ok(Account{account, compressed: *value, point})
     }
 }
@@ -166,7 +166,7 @@ impl TryFrom<&[u8; 32]> for Account {
     type Error = NanoError;
     fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
         let compressed = CompressedEdwardsY::from_slice(value)
-            .or(Err(NanoError::InvalidPoint))?;
+            .or(Err(NanoError::InvalidCurvePoint))?;
         Account::try_from(compressed)
     }
 }

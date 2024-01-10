@@ -1,9 +1,9 @@
 mod version;
-mod v0;
+mod v1;
 
 // pub mod hazmat {
-//     pub mod v0 {
-//         pub use crate::stealth::v0::*;
+//     pub mod v1 {
+//         pub use crate::stealth::v1::*;
 //     }
 // }
 
@@ -14,7 +14,7 @@ use crate::{
     NanoError, Key, Account, Block, Signature, SecretBytes,
     constants::{STEALTH_ACCOUNT_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
 };
-use v0::{StealthKeysV0, StealthViewKeysV0, StealthAccountV0};
+use v1::{StealthKeysV1, StealthViewKeysV1, StealthAccountV1};
 use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use curve25519_dalek::edwards::EdwardsPoint;
@@ -24,17 +24,17 @@ pub use version::StealthAccountVersions;
 macro_rules! unwrap_enum {
     (StealthKeys, $instance: ident) => {
         match $instance {
-            StealthKeys::V0(v1) => v1
+            StealthKeys::V1(v1) => v1
         }
     };
     (StealthViewKeys, $instance: ident) => {
         match $instance {
-            StealthViewKeys::V0(v1) => v1
+            StealthViewKeys::V1(v1) => v1
         }
     };
     (StealthAccount, $instance: ident) => {
         match $instance {
-            StealthAccount::V0(v1) => v1
+            StealthAccount::V1(v1) => v1
         }
     };
 }
@@ -69,13 +69,13 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
 /// The private keys of a `stealth_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
-    V0(StealthKeysV0)
+    V1(StealthKeysV1)
 }
 impl StealthKeys {
     pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Result<StealthKeys, NanoError> {
         match versions.highest_supported_version() {
-            Some(0) => Ok(StealthKeys::V0(StealthKeysV0::from_seed(seed, i, versions))),
-            _ => Err(NanoError::InvalidVersions(versions))
+            Some(1) => Ok(StealthKeys::V1(StealthKeysV1::from_seed(seed, i, versions))),
+            _ => Err(NanoError::UnknownVersions(versions))
         }
     }
 
@@ -142,17 +142,16 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     }
 }
 
-
 /// The private view keys of a `stealth_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
-    V0(StealthViewKeysV0)
+    V1(StealthViewKeysV1)
 }
 impl StealthViewKeys {
     pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Result<StealthViewKeys, NanoError> {
         match versions.highest_supported_version() {
-            Some(0) => Ok(StealthViewKeys::V0(StealthViewKeysV0::from_seed(seed, master_spend, i, versions))),
-            _ => Err(NanoError::InvalidVersions(versions))
+            Some(1) => Ok(StealthViewKeys::V1(StealthViewKeysV1::from_seed(seed, master_spend, i, versions))),
+            _ => Err(NanoError::UnknownVersions(versions))
         }
     }
 
@@ -213,15 +212,15 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
         let versions = StealthAccountVersions::decode_from_bits(value.as_ref()[0]);
 
         match versions.highest_supported_version() {
-            Some(0) => Ok(StealthViewKeys::V0(StealthViewKeysV0::try_from(value)?)),
-            _ => Err(NanoError::InvalidVersions(versions))
+            Some(1) => Ok(StealthViewKeys::V1(StealthViewKeysV1::try_from(value)?)),
+            _ => Err(NanoError::UnknownVersions(versions))
         }
     }
 }
 impl From<&StealthKeys> for StealthViewKeys {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V0(v1) => StealthViewKeys::V0(v1.to_view_keys())
+            StealthKeys::V1(v1) => StealthViewKeys::V1(v1.to_view_keys())
         }
     }
 }
@@ -259,7 +258,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
 /// A `stealth_` account
 #[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
 pub enum StealthAccount {
-    V0(StealthAccountV0)
+    V1(StealthAccountV1)
 }
 impl StealthAccount {
     pub fn from_keys(keys: StealthKeys) -> StealthAccount {
@@ -269,10 +268,10 @@ impl StealthAccount {
     pub fn from_string(account: &str) -> Result<Self, NanoError> {
         // sanity check to prevent panic
         if account.len() < ADDRESS_CHARS_SAMPLE_END {
-            return Err(NanoError::InvalidLength)
+            return Err(NanoError::InvalidAddressLength)
         }
         if &account[..STEALTH_PREFIX_LEN] != STEALTH_ACCOUNT_PREFIX {
-            return Err(NanoError::InvalidFormatting)
+            return Err(NanoError::InvalidAddressPrefix)
         }
         let address_sample = &account[STEALTH_PREFIX_LEN..ADDRESS_CHARS_SAMPLE_END];
         let data = base32::decode(address_sample)
@@ -280,8 +279,8 @@ impl StealthAccount {
 
         let versions = version_bits!(data[0]);
         match versions.highest_supported_version() {
-            Some(0) => Ok(StealthAccount::V0(StealthAccountV0::from_string(account)?)),
-            _ => Err(NanoError::InvalidVersions(versions)),
+            Some(1) => Ok(StealthAccount::V1(StealthAccountV1::from_string(account)?)),
+            _ => Err(NanoError::UnknownVersions(versions)),
         }
     }
 
@@ -326,14 +325,14 @@ auto_from_impl!(From, StealthViewKeys, StealthAccount);
 impl From<&StealthKeys> for StealthAccount {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V0(v1) => StealthAccount::V0(v1.to_stealth_account())
+            StealthKeys::V1(v1) => StealthAccount::V1(v1.to_stealth_account())
         }
     }
 }
 impl From<&StealthViewKeys> for StealthAccount {
     fn from(value: &StealthViewKeys) -> Self {
         match value {
-            StealthViewKeys::V0(v1) => StealthAccount::V0(v1.to_stealth_account())
+            StealthViewKeys::V1(v1) => StealthAccount::V1(v1.to_stealth_account())
         }
     }
 }

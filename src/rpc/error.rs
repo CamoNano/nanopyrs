@@ -13,17 +13,18 @@ pub enum RpcError {
     ReqwestError(#[from] ReqwestError),
     #[error(transparent)]
     JsonError(#[from] JsonError),
+    /// Error while parsing data
     #[error("parsing error: {0}")]
     ParseError(String),
-    #[error("data was invalid")]
+    /// The data is invalid
+    #[error("data is invalid")]
     InvalidData,
-    #[error("this action could not be completed")]
-    CommandFailed,
     /// Cannot publish block of type `legacy`
     #[error("cannot publish block of type 'legacy'")]
     LegacyBlockType
 }
 impl RpcError {
+    /// Maps `Some(T)` to `Ok(T)`, and `None` to `RpcError::ParseError`
     pub fn from_option<T>(option: Option<T>) -> Result<T, RpcError> {
         option.ok_or(
             RpcError::ParseError("Option<T> returned empty".into())

@@ -95,9 +95,6 @@ impl Block {
 
     /// Interpret the `link` field as an account
     pub fn link_as_account(&self) -> Result<Account, NanoError> {
-        // if self.block_type != BlockType::Send {
-        //     return Err(NanoError::InvalidFormatting)
-        // }
         Account::try_from(self.link)
     }
 

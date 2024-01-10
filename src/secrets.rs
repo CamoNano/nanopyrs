@@ -97,7 +97,7 @@ impl Scalar {
     pub fn from_canonical_bytes(mut bytes: [u8; 32]) -> Result<Scalar, NanoError> {
         let raw = RawScalar::from_canonical_bytes(bytes);
         if raw.is_none().into() {
-            return Err(NanoError::InvalidPoint);
+            return Err(NanoError::InvalidCurvePoint);
         }
         bytes.zeroize();
         Ok(Scalar::from(raw.unwrap()))

@@ -1,5 +1,4 @@
 use crate::{auto_from_impl, constants::*};
-use std::fmt::Display;
 use zeroize::Zeroize;
 
 /// Decode `StealthAccountVersions` from the compact `u8` representation.
@@ -17,8 +16,9 @@ macro_rules! version_bits {
 
 
 /// Create `StealthAccountVersions` with all of the given versions enabled.
+/// Versions which are not supported by this software will be ignored.
 ///
-/// Note that currently, only version `0` is supported.
+/// Note that currently, only version `1` is supported.
 #[macro_export]
 macro_rules! versions {
     ( $($version: expr),* ) => {
@@ -33,8 +33,13 @@ macro_rules! versions {
     };
 }
 
-#[allow(clippy::absurd_extreme_comparisons)]
-fn is_valid_version(version: u8) -> bool {
+fn is_possible_version(version: u8) -> bool {
+    version > 0 &&
+    version <= HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
+}
+
+fn is_known_version(version: u8) -> bool {
+    version > 0 &&
     version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
 }
 
@@ -45,46 +50,76 @@ pub struct StealthAccountVersions {
 }
 impl StealthAccountVersions {
     /// Create `StealthAccountVersions` with all of the given versions enabled.
+    /// Versions which are not supported by this software will be ignored.
     ///
-    /// Note that currently, only version `0` is supported.
-    pub fn new(versions: Vec<u8>) -> StealthAccountVersions {
+    /// Note that currently, only version `1` is supported.
+    pub fn new(versions: &[u8]) -> StealthAccountVersions {
         let mut version = StealthAccountVersions::default();
         for i in versions {
-            version.enable_version(i)
+            version.enable_version(*i);
         }
         version
     }
 
-    pub fn enable_version(&mut self, version: u8) {
-        if !is_valid_version(version) {
+
+    /// Enable the given version, regardless of whether or not that version is supported by this software
+    pub fn force_enable_version(&mut self, version: u8) {
+        if !is_possible_version(version) {
             return;
         }
-        self.supported_versions[version as usize] = true;
+        self.supported_versions[version as usize - 1] = true;
     }
 
+    /// Enable the given version, so long as that version is supported by this software.
+    /// Returns whether or not the version was enabled.
+    pub fn enable_version(&mut self, version: u8) -> bool {
+        if !is_known_version(version) {
+            return false;
+        }
+        self.force_enable_version(version);
+        true
+    }
+
+    /// Disable the given version
     pub fn disable_version(&mut self, version: u8) {
-        if !is_valid_version(version) {
+        if !is_possible_version(version) {
             return;
         }
-        self.supported_versions[version as usize] = false;
+        self.supported_versions[version as usize - 1] = false;
     }
 
-    /// Returns whether the `stealth_` account supports the version.
-    ///
-    /// Will always return `false` if this software does not support the given version.
-    pub fn supports_version(&self, version: u8) -> bool {
-        if !is_valid_version(version) {
+
+    /// Returns whether or not the given version is supported by the `stealth_` account **but** not necessarily supported by this software
+    pub fn signals_version(&self, version: u8) -> bool {
+        if !is_possible_version(version) {
             return false
         }
-        self.supported_versions[version as usize]
+        self.supported_versions[version as usize - 1]
     }
 
-    /// Returns the highest version that is supported by both the `stealth_` account and this software
+    /// Returns whether or not the given version is supported by the `stealth_` account **and** supported by this software
+    pub fn supports_version(&self, version: u8) -> bool {
+        if !is_known_version(version) {
+            return false
+        }
+        self.signals_version(version)
+    }
+
+
+    /// Returns the highest version that is supported by the `stealth_` account **but** not necessarily supported by this software
+    pub fn highest_signaled_version(&self) -> Option<u8> {
+        (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
+            .rev()
+            .find(|&version| self.signals_version(version))
+    }
+
+    /// Returns the highest version that is supported by the `stealth_` account **and** supported by this software
     pub fn highest_supported_version(&self) -> Option<u8> {
         (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
             .rev()
             .find(|&version| self.supports_version(version))
     }
+
 
     /// Encode the version support to a `u8`
     pub fn encode_to_bits(&self) -> u8 {
@@ -120,11 +155,6 @@ impl From<&StealthAccountVersions> for [bool; 8] {
         value.supported_versions
     }
 }
-impl Display for StealthAccountVersions {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.supported_versions)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -141,10 +171,33 @@ mod tests {
     };
 
     #[test]
+    fn valid_versions() {
+        assert!(!is_possible_version(0));
+        assert!(!is_known_version(0));
+
+        for i in 1..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION {
+            assert!(is_possible_version(i));
+        }
+        for i in 1..=HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION {
+            assert!(is_known_version(i));
+        }
+
+        assert!(!is_possible_version(9));
+        assert!(!is_known_version(9));
+    }
+
+    #[test]
+    fn highest_signaled_version() {
+        assert!(TEST_VERSIONS_1.highest_signaled_version() == Some(6));
+        assert!(TEST_VERSIONS_2.highest_signaled_version() == Some(8));
+        assert!(TEST_VERSIONS_3.highest_signaled_version() == Some(8));
+    }
+
+    #[test]
     fn highest_supported_version() {
-        assert!(TEST_VERSIONS_1.highest_supported_version() == Some(0));
+        assert!(TEST_VERSIONS_1.highest_supported_version() == Some(1));
         assert!(TEST_VERSIONS_2.highest_supported_version() == None);
-        assert!(TEST_VERSIONS_3.highest_supported_version() == Some(0));
+        assert!(TEST_VERSIONS_3.highest_supported_version() == Some(1));
     }
 
     #[test]

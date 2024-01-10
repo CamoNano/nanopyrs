@@ -31,14 +31,14 @@ use curve25519_dalek::edwards::{EdwardsPoint, CompressedEdwardsY};
 
 pub(crate) fn try_compressed_from_slice(key: &[u8]) -> Result<CompressedEdwardsY, NanoError> {
     CompressedEdwardsY::from_slice(key)
-        .or( Err(NanoError::InvalidPoint) )
+        .or( Err(NanoError::InvalidCurvePoint) )
 }
 
 pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError> {
     let point = try_compressed_from_slice(key)?
-        .decompress().ok_or(NanoError::InvalidPoint)?;
+        .decompress().ok_or(NanoError::InvalidCurvePoint)?;
     if point.is_small_order() {
-        return Err(NanoError::InvalidPoint)
+        return Err(NanoError::InvalidCurvePoint)
     }
     Ok(point)
 }

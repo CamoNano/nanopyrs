@@ -32,7 +32,7 @@ fn get_partial_keys(view_seed: &SecretBytes<32>, i: u32) -> (Scalar, Scalar) {
     )
 }
 
-fn points_to_account(versions: StealthAccountVersions, spend: EdwardsPoint, view: EdwardsPoint) -> StealthAccountV0 {
+fn points_to_account(versions: StealthAccountVersions, spend: EdwardsPoint, view: EdwardsPoint) -> StealthAccountV1 {
     let compressed_spend_key = spend.compress();
     let compressed_view_key = view.compress();
 
@@ -48,7 +48,7 @@ fn points_to_account(versions: StealthAccountVersions, spend: EdwardsPoint, view
     let data = [data.as_slice(), &checksum].concat();
     account.push_str(&base32::encode(&data));
 
-    StealthAccountV0 {
+    StealthAccountV1 {
         account,
         versions,
         compressed_spend_key,
@@ -58,9 +58,9 @@ fn points_to_account(versions: StealthAccountVersions, spend: EdwardsPoint, view
     }
 }
 
-fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, NanoError> {
+fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, NanoError> {
     if account.len() != 120 {
-        return Err(NanoError::InvalidLength)
+        return Err(NanoError::InvalidAddressLength)
     }
 
     let versions = version_bits!(data[0]);
@@ -71,14 +71,14 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, Nan
     calculated_checksum.reverse();
 
     if checksum != calculated_checksum {
-        return Err(NanoError::InvalidChecksum)
+        return Err(NanoError::InvalidAddressChecksum)
     }
 
     let compressed_spend_key = try_compressed_from_slice(spend_key)?;
     let compressed_view_key = try_compressed_from_slice(view_key)?;
 
     Ok(
-        StealthAccountV0 {
+        StealthAccountV1 {
             account: account.to_string(),
             versions,
             compressed_spend_key,
@@ -92,19 +92,19 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, Nan
 
 
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct StealthKeysV0 {
+pub struct StealthKeysV1 {
     versions: StealthAccountVersions,
     private_spend: Scalar,
     private_view: Scalar,
 }
-impl StealthKeysTrait for StealthKeysV0 {
-    type ViewKeysType = StealthViewKeysV0;
-    type AccountType = StealthAccountV0;
+impl StealthKeysTrait for StealthKeysV1 {
+    type ViewKeysType = StealthViewKeysV1;
+    type AccountType = StealthAccountV1;
 
-    fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> StealthKeysV0 {
+    fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> StealthKeysV1 {
         let master_spend = get_account_scalar(&get_stealth_spend_seed(master_seed), 0);
         let (partial_spend, private_view) = get_partial_keys(&get_stealth_view_seed(master_seed), i);
-        StealthKeysV0 {
+        StealthKeysV1 {
             versions,
             private_spend: master_spend + partial_spend,
             private_view
@@ -113,7 +113,7 @@ impl StealthKeysTrait for StealthKeysV0 {
 
     fn to_view_keys(&self) -> Self::ViewKeysType {
         let spend = &self.private_spend * G;
-        StealthViewKeysV0 {
+        StealthViewKeysV1 {
             versions: self.versions,
             compressed_spend_key: spend.compress(),
             point_spend_key: spend,
@@ -145,19 +145,19 @@ impl StealthKeysTrait for StealthKeysV0 {
 
 
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct StealthViewKeysV0 {
+pub struct StealthViewKeysV1 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
     pub private_view: Scalar,
 }
-impl StealthViewKeysTrait for StealthViewKeysV0 {
-    type AccountType = StealthAccountV0;
+impl StealthViewKeysTrait for StealthViewKeysV1 {
+    type AccountType = StealthAccountV1;
 
-    fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> StealthViewKeysV0 {
+    fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> StealthViewKeysV1 {
         let (private_spend, private_view) = get_partial_keys(view_seed, i);
         let point_spend_key = master_spend + (private_spend * G);
-        StealthViewKeysV0 {
+        StealthViewKeysV1 {
             versions,
             compressed_spend_key: point_spend_key.compress(),
             point_spend_key,
@@ -165,7 +165,7 @@ impl StealthViewKeysTrait for StealthViewKeysV0 {
         }
     }
 
-    fn to_stealth_account(&self) -> StealthAccountV0 {
+    fn to_stealth_account(&self) -> StealthAccountV1 {
         points_to_account(self.versions, self.point_spend_key, &self.private_view * G)
     }
 
@@ -186,11 +186,11 @@ impl StealthViewKeysTrait for StealthViewKeysV0 {
     }
 }
 
-auto_from_impl!(From, StealthViewKeysV0, SecretBytes<65>);
-auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeysV0);
+auto_from_impl!(From, StealthViewKeysV1, SecretBytes<65>);
+auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeysV1);
 
-impl From<&StealthViewKeysV0> for SecretBytes<65> {
-    fn from(value: &StealthViewKeysV0) -> Self {
+impl From<&StealthViewKeysV1> for SecretBytes<65> {
+    fn from(value: &StealthViewKeysV1) -> Self {
         let bytes: [u8; 65] = [
             [value.versions.encode_to_bits()].as_slice(),
             value.compressed_spend_key.as_bytes(),
@@ -199,7 +199,7 @@ impl From<&StealthViewKeysV0> for SecretBytes<65> {
         SecretBytes::from(bytes)
     }
 }
-impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
+impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
     type Error = NanoError;
 
     fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
@@ -211,7 +211,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
         let private_view = Scalar::from_canonical_bytes(
             bytes[33..].as_ref().try_into().unwrap())?;
 
-        Ok(StealthViewKeysV0 {
+        Ok(StealthViewKeysV1 {
             versions,
             compressed_spend_key,
             point_spend_key,
@@ -222,7 +222,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV0 {
 
 
 #[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
-pub struct StealthAccountV0 {
+pub struct StealthAccountV1 {
     account: String,
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
@@ -230,14 +230,14 @@ pub struct StealthAccountV0 {
     point_spend_key: EdwardsPoint,
     point_view_key: EdwardsPoint
 }
-impl StealthAccountTrait for StealthAccountV0 {
-    type KeysType = StealthKeysV0;
+impl StealthAccountTrait for StealthAccountV1 {
+    type KeysType = StealthKeysV1;
 
-    fn from_keys(keys: Self::KeysType) -> StealthAccountV0 {
+    fn from_keys(keys: Self::KeysType) -> StealthAccountV1 {
         keys.to_stealth_account()
     }
 
-    fn from_data(account: &str, data: &[u8]) -> Result<StealthAccountV0, NanoError> {
+    fn from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, NanoError> {
         account_from_data(account, data)
     }
 
@@ -257,7 +257,7 @@ impl StealthAccountTrait for StealthAccountV0 {
         Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
     }
 }
-impl Display for StealthAccountV0 {
+impl Display for StealthAccountV1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}",  self.account.clone())
     }
@@ -266,7 +266,7 @@ impl Display for StealthAccountV0 {
 
 
 stealth_address_tests!(
-    StealthKeysV0, StealthViewKeysV0, StealthAccountV0,
-    versions!(0),
+    StealthKeysV1, StealthViewKeysV1, StealthAccountV1,
+    versions!(1),
     "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

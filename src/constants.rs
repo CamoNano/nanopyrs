@@ -42,12 +42,12 @@ mod stealth {
 
     /// The highest supported protocol version for `stealth_` accounts.
     ///
-    /// Currently, only version `0` is supported.
-    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 0;
+    /// Currently, only version `1` is supported.
+    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 1;
     // The stealth account protocol has up to 8 versions.
     // Support for each version in an address is signaled by toggling bits in 1 byte, encoded in the address.
     // This improves backwards compatability, while still allowing new features to be added.
-    pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 7;
+    pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 8;
 
     /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;

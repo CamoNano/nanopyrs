@@ -4,7 +4,7 @@ use std::error::Error;
 #[cfg(feature = "stealth")]
 use crate::stealth::StealthAccountVersions;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NanoError {
     /// Invalid address length
     InvalidAddressLength,

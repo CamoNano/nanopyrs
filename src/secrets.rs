@@ -8,8 +8,7 @@ use curve25519_dalek::{
     edwards::EdwardsPoint
 };
 
-pub use super::error::NanoError;
-pub use super::account::{Key, Account};
+use super::error::NanoError;
 
 /// Create a `SecretBytes<T>`
 #[macro_export]

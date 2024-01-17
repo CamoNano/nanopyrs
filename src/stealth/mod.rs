@@ -73,6 +73,7 @@ pub enum StealthKeys {
     V1(Box<StealthKeysV1>) = 1
 }
 impl StealthKeys {
+    /// Returns `None` if no supported version is given
     pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Option<StealthKeys> {
         match versions.highest_supported_version() {
             Some(1) => Some(StealthKeys::V1(
@@ -155,6 +156,7 @@ impl StealthViewKeys {
         keys.to_view_keys()
     }
 
+    /// Returns `None` if no supported version is given
     pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Option<StealthViewKeys> {
         match versions.highest_supported_version() {
             Some(1) => Some(StealthViewKeys::V1(

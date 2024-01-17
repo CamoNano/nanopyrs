@@ -88,17 +88,17 @@ pub(crate) fn block_from_info_json(block: &JsonValue) -> Result<Block, RpcError>
 }
 
 /// **Does not handle "subtype" field**
-pub fn block_to_json(block: Block) -> Map<String, JsonValue> {
-    let block_type = match block.block_type {
+pub fn block_to_json(block: &Block) -> Map<String, JsonValue> {
+    let block_type = match block.block_type.clone() {
         BlockType::Legacy(block_type) => block_type,
         _ => "state".into()
     };
 
     let mut json_block = Map::new();
     json_block.insert("type".into(), block_type.into());
-    json_block.insert("account".into(), block.account.into());
+    json_block.insert("account".into(), block.account.clone().into());
     json_block.insert("previous".into(), to_uppercase_hex(&block.previous).into());
-    json_block.insert("representative".into(), block.representative.into());
+    json_block.insert("representative".into(), block.representative.clone().into());
     json_block.insert("balance".into(), block.balance.to_string().into());
     json_block.insert("link".into(), to_uppercase_hex(&block.link).into());
     json_block.insert("signature".into(), to_uppercase_hex(&block.signature.to_bytes()).into());

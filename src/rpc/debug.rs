@@ -218,7 +218,7 @@ impl DebugRpc {
     }
 
     /// Returns the hash of the block
-    pub async fn process(&self, block: Block) -> Response<[u8; 32]>{
+    pub async fn process(&self, block: &Block) -> Response<[u8; 32]>{
         if !block.block_type.is_state() {
             return Response::no_request(Err(RpcError::LegacyBlockType))
         }

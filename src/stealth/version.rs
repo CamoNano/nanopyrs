@@ -24,7 +24,7 @@ macro_rules! versions {
     ( $($version: expr),* ) => {
         {
             use $crate::stealth::StealthAccountVersions;
-            let mut version = StealthAccountVersions::default();
+            let mut version = StealthAccountVersions::empty();
             $(
                 version.enable_version($version);
             )*
@@ -38,23 +38,28 @@ fn is_possible_version(version: u8) -> bool {
     version <= HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
 }
 
-fn is_known_version(version: u8) -> bool {
+fn is_supported_version(version: u8) -> bool {
     version > 0 &&
     version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
 }
 
 /// Signals the version(s) which a `stealth_` account supports
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Zeroize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
 pub struct StealthAccountVersions {
     supported_versions: [bool; 8]
 }
 impl StealthAccountVersions {
+    /// Create `StealthAccountVersions` with no versions enabled
+    pub fn empty() -> StealthAccountVersions {
+        StealthAccountVersions::from([false; 8])
+    }
+
     /// Create `StealthAccountVersions` with all of the given versions enabled.
     /// Versions which are not supported by this software will be ignored.
     ///
     /// Note that currently, only version `1` is supported.
     pub fn new(versions: &[u8]) -> StealthAccountVersions {
-        let mut version = StealthAccountVersions::default();
+        let mut version = StealthAccountVersions::empty();
         for i in versions {
             version.enable_version(*i);
         }
@@ -73,7 +78,7 @@ impl StealthAccountVersions {
     /// Enable the given version, so long as that version is supported by this software.
     /// Returns whether or not the version was enabled.
     pub fn enable_version(&mut self, version: u8) -> bool {
-        if !is_known_version(version) {
+        if !is_supported_version(version) {
             return false;
         }
         self.force_enable_version(version);
@@ -99,7 +104,7 @@ impl StealthAccountVersions {
 
     /// Returns whether or not the given version is supported by the `stealth_` account **and** supported by this software
     pub fn supports_version(&self, version: u8) -> bool {
-        if !is_known_version(version) {
+        if !is_supported_version(version) {
             return false
         }
         self.signals_version(version)
@@ -173,17 +178,17 @@ mod tests {
     #[test]
     fn valid_versions() {
         assert!(!is_possible_version(0));
-        assert!(!is_known_version(0));
+        assert!(!is_supported_version(0));
 
         for i in 1..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION {
             assert!(is_possible_version(i));
         }
         for i in 1..=HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION {
-            assert!(is_known_version(i));
+            assert!(is_supported_version(i));
         }
 
         assert!(!is_possible_version(9));
-        assert!(!is_known_version(9));
+        assert!(!is_supported_version(9));
     }
 
     #[test]

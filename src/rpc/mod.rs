@@ -94,7 +94,7 @@ impl Rpc {
     }
 
     /// Returns the hash of the block
-    pub async fn process(&self, block: Block) -> Result<[u8; 32], RpcError> {
+    pub async fn process(&self, block: &Block) -> Result<[u8; 32], RpcError> {
         self.0.process(block).await.result
     }
 

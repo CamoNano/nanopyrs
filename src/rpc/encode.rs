@@ -88,7 +88,7 @@ pub fn blocks_info(hashes: &[[u8; 32]]) -> JsonValue {
     JsonValue::Object(arguments)
 }
 
-pub fn process(block: Block) -> JsonValue {
+pub fn process(block: &Block) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "process".into());
     arguments.insert("subtype".into(), block.block_type.to_string().into());
@@ -237,7 +237,7 @@ mod tests {
             signature: signature.try_into().unwrap(),
             work: hex::decode("000bc55b014e807d").unwrap().try_into().unwrap()
         };
-        let json = super::process(block);
+        let json = super::process(&block);
         assert!(json == json!({
             "action": "process",
             "json_block": "true",

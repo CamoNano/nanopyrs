@@ -22,19 +22,19 @@ use curve25519_dalek::edwards::EdwardsPoint;
 pub use version::StealthAccountVersions;
 
 macro_rules! unwrap_enum {
-    (StealthKeys, $instance: ident) => {
+    (StealthKeys, $instance:ident . $func:ident($($arg:expr),*) ) => {
         match $instance {
-            StealthKeys::V1(v1) => v1
+            StealthKeys::V1(v1) => v1.as_ref().$func($($arg),*)
         }
     };
-    (StealthViewKeys, $instance: ident) => {
+    (StealthViewKeys, $instance:ident . $func:ident($($arg:expr),*) ) => {
         match $instance {
-            StealthViewKeys::V1(v1) => v1
+            StealthViewKeys::V1(v1) => v1.as_ref().$func($($arg),*)
         }
     };
-    (StealthAccount, $instance: ident) => {
+    (StealthAccount, $instance:ident . $func:ident($($arg:expr),*) ) => {
         match $instance {
-            StealthAccount::V1(v1) => v1
+            StealthAccount::V1(v1) => v1.as_ref().$func($($arg),*)
         }
     };
 }
@@ -67,14 +67,15 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
 }
 
 /// The private keys of a `stealth_` account
+#[repr(u32)]
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
-    V1(StealthKeysV1)
+    V1(Box<StealthKeysV1>) = 1
 }
 impl StealthKeys {
     pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Result<StealthKeys, NanoError> {
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthKeys::V1(StealthKeysV1::from_seed(seed, i, versions))),
+            Some(1) => Ok(StealthKeys::V1( Box::new(StealthKeysV1::from_seed(seed, i, versions)) )),
             _ => Err(NanoError::UnknownVersions(versions))
         }
     }
@@ -89,7 +90,7 @@ impl StealthKeys {
 
     /// Key of the account for "notification" transactions to be sent to, if applicable
     pub fn notification_key(&self) -> Key {
-        unwrap_enum!(StealthKeys, self).notification_key()
+        unwrap_enum!(StealthKeys, self.notification_key())
     }
 
     /// Sign the `message` with the notification key, returning a `Signature`
@@ -103,16 +104,16 @@ impl StealthKeys {
 
     /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
-        unwrap_enum!(StealthKeys, self).get_versions()
+        unwrap_enum!(StealthKeys, self.get_versions())
     }
 
     /// Calculate the shared secret between this key and the given account.
     pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
-        unwrap_enum!(StealthKeys, self).receiver_ecdh(sender_account)
+        unwrap_enum!(StealthKeys, self.receiver_ecdh(sender_account))
     }
 
     pub fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key {
-        unwrap_enum!(StealthKeys, self).derive_key_from_secret(secret, i)
+        unwrap_enum!(StealthKeys, self.derive_key_from_secret(secret, i))
     }
 
     pub fn derive_key(&self, sender_account: Account, i: u32) -> Key {
@@ -143,14 +144,15 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 }
 
 /// The private view keys of a `stealth_` account
+#[repr(u32)]
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
-    V1(StealthViewKeysV1)
+    V1(Box<StealthViewKeysV1>) = 1
 }
 impl StealthViewKeys {
     pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Result<StealthViewKeys, NanoError> {
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthViewKeys::V1(StealthViewKeysV1::from_seed(seed, master_spend, i, versions))),
+            Some(1) => Ok(StealthViewKeys::V1( Box::new(StealthViewKeysV1::from_seed(seed, master_spend, i, versions)) )),
             _ => Err(NanoError::UnknownVersions(versions))
         }
     }
@@ -169,7 +171,7 @@ impl StealthViewKeys {
 
     /// Account for "notification" transactions to be sent to, if applicable
     pub fn notification_account(&self) -> Account {
-        unwrap_enum!(StealthViewKeys, self).notification_account()
+        unwrap_enum!(StealthViewKeys, self.notification_account())
     }
 
     /// Check the validity of a signature made by the notification key
@@ -179,16 +181,16 @@ impl StealthViewKeys {
 
     /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
-        unwrap_enum!(StealthViewKeys, self).get_versions()
+        unwrap_enum!(StealthViewKeys, self.get_versions())
     }
 
     /// Calculate the shared secret between this key and the given account.
     pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
-        unwrap_enum!(StealthViewKeys, self).receiver_ecdh(sender_account)
+        unwrap_enum!(StealthViewKeys, self.receiver_ecdh(sender_account))
     }
 
     pub fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(StealthViewKeys, self).derive_account_from_secret(secret, i)
+        unwrap_enum!(StealthViewKeys, self.derive_account_from_secret(secret, i))
     }
 
     pub fn derive_account(&self, sender_account: Account, i: u32) -> Account {
@@ -202,7 +204,7 @@ auto_from_impl!(From, StealthKeys, StealthViewKeys);
 
 impl From<&StealthViewKeys> for SecretBytes<65> {
     fn from(value: &StealthViewKeys) -> Self {
-        unwrap_enum!(StealthViewKeys, value).into()
+        unwrap_enum!(StealthViewKeys, value.into())
     }
 }
 impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
@@ -212,7 +214,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
         let versions = StealthAccountVersions::decode_from_bits(value.as_ref()[0]);
 
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthViewKeys::V1(StealthViewKeysV1::try_from(value)?)),
+            Some(1) => Ok(StealthViewKeys::V1( Box::new(StealthViewKeysV1::try_from(value)?) )),
             _ => Err(NanoError::UnknownVersions(versions))
         }
     }
@@ -220,7 +222,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
 impl From<&StealthKeys> for StealthViewKeys {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V1(v1) => StealthViewKeys::V1(v1.to_view_keys())
+            StealthKeys::V1(v1) => StealthViewKeys::V1( Box::new(v1.to_view_keys()) )
         }
     }
 }
@@ -256,9 +258,10 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
 }
 
 /// A `stealth_` account
+#[repr(u32)]
 #[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
 pub enum StealthAccount {
-    V1(StealthAccountV1)
+    V1(Box<StealthAccountV1>) = 1
 }
 impl StealthAccount {
     pub fn from_keys(keys: StealthKeys) -> StealthAccount {
@@ -279,14 +282,14 @@ impl StealthAccount {
 
         let versions = version_bits!(data[0]);
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthAccount::V1(StealthAccountV1::from_string(account)?)),
+            Some(1) => Ok(StealthAccount::V1( Box::new(StealthAccountV1::from_string(account)?) )),
             _ => Err(NanoError::UnknownVersions(versions)),
         }
     }
 
     /// Account for "notification" transactions to be sent to, if applicable
     pub fn notification_account(&self) -> Account {
-        unwrap_enum!(StealthAccount, self).notification_account()
+        unwrap_enum!(StealthAccount, self.notification_account())
     }
 
     /// Check the validity of a signature made by the notification key
@@ -296,7 +299,7 @@ impl StealthAccount {
 
     /// Get the versions which this `stealth_` account supports
     pub fn get_versions(&self) -> StealthAccountVersions {
-        unwrap_enum!(StealthAccount, self).get_versions()
+        unwrap_enum!(StealthAccount, self.get_versions())
     }
 
     pub fn is_valid(account: &str) -> bool {
@@ -305,11 +308,11 @@ impl StealthAccount {
 
     /// Calculate the shared secret between this account and the given key.
     pub fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32> {
-        unwrap_enum!(StealthAccount, self).sender_ecdh(sender_key)
+        unwrap_enum!(StealthAccount, self.sender_ecdh(sender_key))
     }
 
     pub fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(StealthAccount, self).derive_account_from_secret(secret, i)
+        unwrap_enum!(StealthAccount, self.derive_account_from_secret(secret, i))
     }
 
     pub fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
@@ -325,20 +328,20 @@ auto_from_impl!(From, StealthViewKeys, StealthAccount);
 impl From<&StealthKeys> for StealthAccount {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V1(v1) => StealthAccount::V1(v1.to_stealth_account())
+            StealthKeys::V1(v1) => StealthAccount::V1( Box::new(v1.to_stealth_account()) )
         }
     }
 }
 impl From<&StealthViewKeys> for StealthAccount {
     fn from(value: &StealthViewKeys) -> Self {
         match value {
-            StealthViewKeys::V1(v1) => StealthAccount::V1(v1.to_stealth_account())
+            StealthViewKeys::V1(v1) => StealthAccount::V1( Box::new(v1.to_stealth_account()) )
         }
     }
 }
 impl Display for StealthAccount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let as_string = unwrap_enum!(StealthAccount, self).to_string();
+        let as_string = unwrap_enum!(StealthAccount, self.to_string());
         write!(f, "{}", as_string)
     }
 }

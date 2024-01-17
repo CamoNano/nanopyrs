@@ -1,9 +1,6 @@
 use std::fmt::Display;
 use std::error::Error;
 
-#[cfg(feature = "stealth")]
-use crate::stealth::StealthAccountVersions;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NanoError {
     /// Invalid address length
@@ -16,21 +13,21 @@ pub enum NanoError {
     InvalidCurvePoint,
     /// Invalid base32 encoding
     InvalidBase32,
+    /// incompatible stealth protocol versions
     #[cfg(feature = "stealth")]
-    /// unknown stealth protocol versions
-    UnknownVersions(StealthAccountVersions)
+    IncompatibleStealthVersions
 }
 impl Display for NanoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string: String = match &self {
-            NanoError::InvalidAddressLength => "invalid length".into(),
-            NanoError::InvalidAddressPrefix => "invalid formatting".into(),
-            NanoError::InvalidBase32 => "invalid base 32 encoding".into(),
-            NanoError::InvalidAddressChecksum => "invalid checksum".into(),
-            NanoError::InvalidCurvePoint => "invalid ed25519 point".into(),
+            NanoError::InvalidAddressLength => "invalid length",
+            NanoError::InvalidAddressPrefix => "invalid formatting",
+            NanoError::InvalidBase32 => "invalid base 32 encoding",
+            NanoError::InvalidAddressChecksum => "invalid checksum",
+            NanoError::InvalidCurvePoint => "invalid ed25519 point",
             #[cfg(feature = "stealth")]
-            NanoError::UnknownVersions(versions) => format!("unknown stealth protocol versions: {versions:?}")
-        };
+            NanoError::IncompatibleStealthVersions => "incompatible stealth protocol versions"
+        }.into();
         write!(f, "{string}")
     }
 }

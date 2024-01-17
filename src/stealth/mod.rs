@@ -73,10 +73,11 @@ pub enum StealthKeys {
     V1(Box<StealthKeysV1>) = 1
 }
 impl StealthKeys {
-    pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Result<StealthKeys, NanoError> {
+    pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Option<StealthKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthKeys::V1( Box::new(StealthKeysV1::from_seed(seed, i, versions)) )),
-            _ => Err(NanoError::UnknownVersions(versions))
+            Some(1) => Some(StealthKeys::V1(
+                Box::new(StealthKeysV1::from_seed(seed, i, versions)) )),
+            _ => None
         }
     }
 
@@ -150,10 +151,15 @@ pub enum StealthViewKeys {
     V1(Box<StealthViewKeysV1>) = 1
 }
 impl StealthViewKeys {
-    pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Result<StealthViewKeys, NanoError> {
+    pub fn from_keys(keys: StealthKeys) -> StealthViewKeys {
+        keys.to_view_keys()
+    }
+
+    pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Option<StealthViewKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthViewKeys::V1( Box::new(StealthViewKeysV1::from_seed(seed, master_spend, i, versions)) )),
-            _ => Err(NanoError::UnknownVersions(versions))
+            Some(1) => Some(StealthViewKeys::V1(
+                Box::new(StealthViewKeysV1::from_seed(seed, master_spend, i, versions)) )),
+            _ => None
         }
     }
 
@@ -165,8 +171,8 @@ impl StealthViewKeys {
         self.into()
     }
 
-    pub fn from_bytes(value: &SecretBytes<65>) -> Result<StealthViewKeys, NanoError> {
-        StealthViewKeys::try_from(value)
+    pub fn from_bytes(value: &SecretBytes<65>) -> Option<StealthViewKeys> {
+        StealthViewKeys::try_from(value).ok()
     }
 
     /// Account for "notification" transactions to be sent to, if applicable
@@ -199,7 +205,6 @@ impl StealthViewKeys {
 }
 
 auto_from_impl!(From, StealthViewKeys, SecretBytes<65>);
-auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeys);
 auto_from_impl!(From, StealthKeys, StealthViewKeys);
 
 impl From<&StealthViewKeys> for SecretBytes<65> {
@@ -207,15 +212,26 @@ impl From<&StealthViewKeys> for SecretBytes<65> {
         unwrap_enum!(StealthViewKeys, value.into())
     }
 }
-impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
-    type Error = NanoError;
+impl TryFrom<SecretBytes<65>> for StealthViewKeys {
+    type Error = ();
 
-    fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
+    fn try_from(value: SecretBytes<65>) -> Result<Self, ()> {
+        (&value).try_into()
+    }
+}
+impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
+    type Error = ();
+
+    fn try_from(value: &SecretBytes<65>) -> Result<Self, ()> {
         let versions = StealthAccountVersions::decode_from_bits(value.as_ref()[0]);
 
+        let value = match StealthViewKeysV1::try_from(value) {
+            Ok(value) => value,
+            Err(_) => return Err(())
+        };
         match versions.highest_supported_version() {
-            Some(1) => Ok(StealthViewKeys::V1( Box::new(StealthViewKeysV1::try_from(value)?) )),
-            _ => Err(NanoError::UnknownVersions(versions))
+            Some(1) => Ok(StealthViewKeys::V1(Box::new(value))),
+            _ => Err(())
         }
     }
 }
@@ -268,6 +284,10 @@ impl StealthAccount {
         keys.to_stealth_account()
     }
 
+    pub fn from_view_keys(keys: StealthViewKeys) -> StealthAccount {
+        keys.to_stealth_account()
+    }
+
     pub fn from_string(account: &str) -> Result<Self, NanoError> {
         // sanity check to prevent panic
         if account.len() < ADDRESS_CHARS_SAMPLE_END {
@@ -280,10 +300,9 @@ impl StealthAccount {
         let data = base32::decode(address_sample)
             .ok_or(NanoError::InvalidBase32)?;
 
-        let versions = version_bits!(data[0]);
-        match versions.highest_supported_version() {
+        match version_bits!(data[0]).highest_supported_version() {
             Some(1) => Ok(StealthAccount::V1( Box::new(StealthAccountV1::from_string(account)?) )),
-            _ => Err(NanoError::UnknownVersions(versions)),
+            _ => Err(NanoError::IncompatibleStealthVersions),
         }
     }
 

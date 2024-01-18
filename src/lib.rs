@@ -1,23 +1,23 @@
 #![deny(unsafe_code)]
 
-mod nanopy;
-mod error;
-mod secrets;
 mod account;
+mod error;
+mod nanopy;
+mod secrets;
 
+pub mod base32;
+pub mod block;
 /// Various Nano-related constants
 pub mod constants;
 /// Various hash functions
 pub mod hashes;
-pub mod base32;
 pub mod signature;
-pub mod block;
 
-pub use error::NanoError;
-pub use secrets::{SecretBytes, Scalar};
-pub use account::{Key, Account};
-pub use signature::Signature;
+pub use account::{Account, Key};
 pub use block::{Block, BlockType};
+pub use error::NanoError;
+pub use secrets::{Scalar, SecretBytes};
+pub use signature::Signature;
 
 #[cfg(feature = "stealth")]
 pub mod stealth;
@@ -25,20 +25,18 @@ pub mod stealth;
 #[cfg(feature = "rpc")]
 pub mod rpc;
 
-
-
-use curve25519_dalek::edwards::{EdwardsPoint, CompressedEdwardsY};
+use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 
 pub(crate) fn try_compressed_from_slice(key: &[u8]) -> Result<CompressedEdwardsY, NanoError> {
-    CompressedEdwardsY::from_slice(key)
-        .or( Err(NanoError::InvalidCurvePoint) )
+    CompressedEdwardsY::from_slice(key).or(Err(NanoError::InvalidCurvePoint))
 }
 
 pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError> {
     let point = try_compressed_from_slice(key)?
-        .decompress().ok_or(NanoError::InvalidCurvePoint)?;
+        .decompress()
+        .ok_or(NanoError::InvalidCurvePoint)?;
     if point.is_small_order() {
-        return Err(NanoError::InvalidCurvePoint)
+        return Err(NanoError::InvalidCurvePoint);
     }
     Ok(point)
 }

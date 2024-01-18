@@ -1,36 +1,34 @@
-use crate::auto_from_impl;
 use super::nanopy::{
-    get_account_scalar,
-    account_encode, account_decode,
-    sign_message, is_valid_signature
+    account_decode, account_encode, get_account_scalar, is_valid_signature, sign_message,
 };
-use super::{SecretBytes, Scalar, Block, Signature};
+use super::{Block, Scalar, SecretBytes, Signature};
+use crate::auto_from_impl;
 use auto_ops::{impl_op_ex, impl_op_ex_commutative};
+use curve25519_dalek::{
+    constants::ED25519_BASEPOINT_POINT as G,
+    edwards::{CompressedEdwardsY, EdwardsPoint},
+    Scalar as RawScalar,
+};
 use std::fmt::Display;
 use std::hash::Hash;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use curve25519_dalek::{
-    Scalar as RawScalar,
-    edwards::{EdwardsPoint, CompressedEdwardsY},
-    constants::ED25519_BASEPOINT_POINT as G
-};
 
 pub use super::error::NanoError;
 
 #[cfg(feature = "rpc")]
 use serde_json::Value as JsonValue;
 
-
-
 /// The private key of a `nano_` account
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Key {
-    private: Scalar
+    private: Scalar,
 }
 impl Key {
     /// Get key at index (`i`) given 32-byte seed (`seed`)
     pub fn from_seed(seed: &SecretBytes<32>, i: u32) -> Key {
-        Key { private: get_account_scalar(seed, i) }
+        Key {
+            private: get_account_scalar(seed, i),
+        }
     }
 
     pub fn from_scalar(scalar: Scalar) -> Key {
@@ -69,22 +67,16 @@ impl From<RawScalar> for Key {
 impl_op_ex!(+ |a: &Key, b: &Key| -> Key {
     Key::from(&a.private + &b.private)
 });
-impl_op_ex!(- |a: &Key, b: &Key| -> Key {
-    Key::from(&a.private - &b.private)
-});
+impl_op_ex!(-|a: &Key, b: &Key| -> Key { Key::from(&a.private - &b.private) });
 
-impl_op_ex_commutative!(* |a: &Key, b: &EdwardsPoint| -> Account {
-    Account::from(&a.private * b)
-});
-
-
+impl_op_ex_commutative!(*|a: &Key, b: &EdwardsPoint| -> Account { Account::from(&a.private * b) });
 
 /// A `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Account {
     pub account: String,
     pub compressed: CompressedEdwardsY,
-    pub point: EdwardsPoint
+    pub point: EdwardsPoint,
 }
 impl Account {
     pub fn from_key(key: Key) -> Account {
@@ -100,11 +92,14 @@ impl Account {
     }
 
     #[cfg(feature = "stealth")]
-    pub(crate) fn from_both_points(point: &EdwardsPoint, compressed: &CompressedEdwardsY) -> Account {
+    pub(crate) fn from_both_points(
+        point: &EdwardsPoint,
+        compressed: &CompressedEdwardsY,
+    ) -> Account {
         Account {
             account: account_encode(compressed),
             compressed: *compressed,
-            point: *point
+            point: *point,
         }
     }
 
@@ -141,16 +136,25 @@ impl From<&EdwardsPoint> for Account {
     fn from(value: &EdwardsPoint) -> Self {
         let compressed = value.compress();
         let account = account_encode(&compressed);
-        Account{account, compressed, point: *value}
+        Account {
+            account,
+            compressed,
+            point: *value,
+        }
     }
 }
 impl TryFrom<&String> for Account {
     type Error = NanoError;
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         let compressed = account_decode(value)?;
-        let point = compressed.decompress()
+        let point = compressed
+            .decompress()
             .ok_or(NanoError::InvalidCurvePoint)?;
-        Ok(Account{account: value.to_string(), compressed, point})
+        Ok(Account {
+            account: value.to_string(),
+            compressed,
+            point,
+        })
     }
 }
 impl TryFrom<&str> for Account {
@@ -163,16 +167,19 @@ impl TryFrom<&CompressedEdwardsY> for Account {
     type Error = NanoError;
     fn try_from(value: &CompressedEdwardsY) -> Result<Self, Self::Error> {
         let account = account_encode(value);
-        let point = value.decompress()
-            .ok_or(NanoError::InvalidCurvePoint)?;
-        Ok(Account{account, compressed: *value, point})
+        let point = value.decompress().ok_or(NanoError::InvalidCurvePoint)?;
+        Ok(Account {
+            account,
+            compressed: *value,
+            point,
+        })
     }
 }
 impl TryFrom<&[u8; 32]> for Account {
     type Error = NanoError;
     fn try_from(value: &[u8; 32]) -> Result<Self, Self::Error> {
-        let compressed = CompressedEdwardsY::from_slice(value)
-            .or(Err(NanoError::InvalidCurvePoint))?;
+        let compressed =
+            CompressedEdwardsY::from_slice(value).or(Err(NanoError::InvalidCurvePoint))?;
         Account::try_from(compressed)
     }
 }
@@ -202,16 +209,12 @@ impl Hash for Account {
 impl_op_ex!(+ |a: &Account, b: &Account| -> Account {
     Account::from(a.point + b.point)
 });
-impl_op_ex!(- |a: &Account, b: &Account| -> Account {
-    Account::from(a.point - b.point)
-});
-
-
+impl_op_ex!(-|a: &Account, b: &Account| -> Account { Account::from(a.point - b.point) });
 
 #[cfg(test)]
 mod tests {
-    use crate::{SecretBytes, constants::get_genesis_account};
     use super::*;
+    use crate::{constants::get_genesis_account, SecretBytes};
 
     #[test]
     fn from_str() {
@@ -221,7 +224,10 @@ mod tests {
 
         let seed = SecretBytes::from([0; 32]);
         let account = Key::from_seed(&seed, 0).to_account();
-        assert!(account.to_string() == "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7");
+        assert!(
+            account.to_string()
+                == "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"
+        );
     }
 
     #[test]

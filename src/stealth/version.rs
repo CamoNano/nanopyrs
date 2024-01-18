@@ -6,14 +6,11 @@ use zeroize::Zeroize;
 /// You propably want `versions!()` instead.
 #[macro_export]
 macro_rules! version_bits {
-    ( $version_bits: expr ) => {
-        {
-            use $crate::stealth::StealthAccountVersions;
-            StealthAccountVersions::decode_from_bits($version_bits)
-        }
-    };
+    ( $version_bits: expr ) => {{
+        use $crate::stealth::StealthAccountVersions;
+        StealthAccountVersions::decode_from_bits($version_bits)
+    }};
 }
-
 
 /// Create `StealthAccountVersions` with all of the given versions enabled.
 /// Versions which are not supported by this software will be ignored.
@@ -34,19 +31,17 @@ macro_rules! versions {
 }
 
 fn is_possible_version(version: u8) -> bool {
-    version > 0 &&
-    version <= HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
+    version > 0 && version <= HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
 }
 
 fn is_supported_version(version: u8) -> bool {
-    version > 0 &&
-    version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
+    version > 0 && version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
 }
 
 /// Signals the version(s) which a `stealth_` account supports
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
 pub struct StealthAccountVersions {
-    supported_versions: [bool; 8]
+    supported_versions: [bool; 8],
 }
 impl StealthAccountVersions {
     /// Create `StealthAccountVersions` with no versions enabled
@@ -65,7 +60,6 @@ impl StealthAccountVersions {
         }
         version
     }
-
 
     /// Enable the given version, regardless of whether or not that version is supported by this software
     pub fn force_enable_version(&mut self, version: u8) {
@@ -93,11 +87,10 @@ impl StealthAccountVersions {
         self.supported_versions[version as usize - 1] = false;
     }
 
-
     /// Returns whether or not the given version is supported by the `stealth_` account **but** not necessarily supported by this software
     pub fn signals_version(&self, version: u8) -> bool {
         if !is_possible_version(version) {
-            return false
+            return false;
         }
         self.supported_versions[version as usize - 1]
     }
@@ -105,11 +98,10 @@ impl StealthAccountVersions {
     /// Returns whether or not the given version is supported by the `stealth_` account **and** supported by this software
     pub fn supports_version(&self, version: u8) -> bool {
         if !is_supported_version(version) {
-            return false
+            return false;
         }
         self.signals_version(version)
     }
-
 
     /// Returns the highest version that is supported by the `stealth_` account **but** not necessarily supported by this software
     pub fn highest_signaled_version(&self) -> Option<u8> {
@@ -124,7 +116,6 @@ impl StealthAccountVersions {
             .rev()
             .find(|&version| self.supports_version(version))
     }
-
 
     /// Encode the version support to a `u8`
     pub fn encode_to_bits(&self) -> u8 {
@@ -152,7 +143,9 @@ auto_from_impl!(From: [bool; 8] => StealthAccountVersions);
 auto_from_impl!(From: StealthAccountVersions => [bool; 8]);
 impl From<&[bool; 8]> for StealthAccountVersions {
     fn from(value: &[bool; 8]) -> Self {
-        StealthAccountVersions { supported_versions: *value }
+        StealthAccountVersions {
+            supported_versions: *value,
+        }
     }
 }
 impl From<&StealthAccountVersions> for [bool; 8] {
@@ -166,13 +159,13 @@ mod tests {
     use super::*;
 
     const TEST_VERSIONS_1: StealthAccountVersions = StealthAccountVersions {
-        supported_versions: [true, false, true, false, true, true, false, false]
+        supported_versions: [true, false, true, false, true, true, false, false],
     };
     const TEST_VERSIONS_2: StealthAccountVersions = StealthAccountVersions {
-        supported_versions: [false, true, false, false, true, true, false, true]
+        supported_versions: [false, true, false, false, true, true, false, true],
     };
     const TEST_VERSIONS_3: StealthAccountVersions = StealthAccountVersions {
-        supported_versions: [true, true, true, true, true, true, true, true]
+        supported_versions: [true, true, true, true, true, true, true, true],
     };
 
     #[test]
@@ -218,8 +211,17 @@ mod tests {
         let versions_2 = StealthAccountVersions::decode_from_bits(versions_1.encode_to_bits());
         assert!(versions_1 == versions_2);
 
-        assert!(StealthAccountVersions::decode_from_bits(TEST_VERSIONS_1.encode_to_bits()) == TEST_VERSIONS_1);
-        assert!(StealthAccountVersions::decode_from_bits(TEST_VERSIONS_2.encode_to_bits()) == TEST_VERSIONS_2);
-        assert!(StealthAccountVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits()) == TEST_VERSIONS_3);
+        assert!(
+            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_1.encode_to_bits())
+                == TEST_VERSIONS_1
+        );
+        assert!(
+            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_2.encode_to_bits())
+                == TEST_VERSIONS_2
+        );
+        assert!(
+            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits())
+                == TEST_VERSIONS_3
+        );
     }
 }

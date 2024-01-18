@@ -1,9 +1,9 @@
+use super::{try_point_from_slice, Account, Key, NanoError};
 use crate::auto_from_impl;
-use super::{NanoError, Key, Account, try_point_from_slice};
-use zeroize::Zeroize;
 use curve25519_dalek::{EdwardsPoint, Scalar as RawScalar};
+use zeroize::Zeroize;
 
-pub use crate::nanopy::{sign_message, is_valid_signature};
+pub use crate::nanopy::{is_valid_signature, sign_message};
 pub mod hazmat {
     pub use crate::nanopy::sign_message_with_r;
 }
@@ -11,7 +11,7 @@ pub mod hazmat {
 #[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq, Default)]
 pub struct Signature {
     pub r: EdwardsPoint,
-    pub s: RawScalar
+    pub s: RawScalar,
 }
 impl Signature {
     pub fn to_bytes(&self) -> [u8; 64] {
@@ -34,10 +34,10 @@ auto_from_impl!(TryFrom: [u8; 64] => Signature);
 
 impl From<&Signature> for [u8; 64] {
     fn from(value: &Signature) -> Self {
-        [
-            value.r.compress().to_bytes(),
-            value.s.to_bytes()
-        ].concat().try_into().unwrap()
+        [value.r.compress().to_bytes(), value.s.to_bytes()]
+            .concat()
+            .try_into()
+            .unwrap()
     }
 }
 impl TryFrom<&[u8; 64]> for Signature {
@@ -45,16 +45,14 @@ impl TryFrom<&[u8; 64]> for Signature {
 
     fn try_from(value: &[u8; 64]) -> Result<Self, NanoError> {
         let r = try_point_from_slice(&value[..32])?;
-        let s = RawScalar::from_bytes_mod_order(
-            value[32..64].try_into().unwrap()
-        );
-        Ok(Signature{r, s})
+        let s = RawScalar::from_bytes_mod_order(value[32..64].try_into().unwrap());
+        Ok(Signature { r, s })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{SecretBytes, Key};
+    use crate::{Key, SecretBytes};
 
     fn get_key(seed: [u8; 32], i: u32) -> Key {
         let seed = SecretBytes::from(seed);

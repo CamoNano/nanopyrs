@@ -4,10 +4,8 @@ use bitvec::prelude::*;
 
 const ALPHABET: &str = "13456789abcdefghijkmnopqrstuwxyz";
 const ALPHABET_ARRAY: [char; 32] = [
-    '1', '3', '4', '5', '6', '7', '8', '9',
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-    'i', 'j', 'k', 'm', 'n', 'o', 'p', 'q',
-    'r', 's', 't', 'u', 'w', 'x', 'y', 'z'
+    '1', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'w', 'x', 'y', 'z',
 ];
 
 pub fn encode(bytes: &[u8]) -> String {

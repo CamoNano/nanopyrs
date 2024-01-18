@@ -1,19 +1,15 @@
-use crate::{secret, scalar, SecretBytes, Scalar};
-use curve25519_dalek::scalar::{
-    Scalar as RawScalar,
-    clamp_integer
-};
+use crate::{scalar, secret, Scalar, SecretBytes};
 use blake2::{
-    Blake2b as _Blake2b,
-    Digest,
-    digest::consts::{U64, U32, U8, U5}
+    digest::consts::{U32, U5, U64, U8},
+    Blake2b as _Blake2b, Digest,
 };
+use curve25519_dalek::scalar::{clamp_integer, Scalar as RawScalar};
 
 #[cfg(feature = "stealth")]
 use crate::constants::{SPEND_CONSTANTS_X_INDEX, VIEW_CONSTANTS_X_INDEX};
 
 pub mod hazmat {
-    pub use crate::nanopy::{get_account_seed, get_account_scalar};
+    pub use crate::nanopy::{get_account_scalar, get_account_seed};
 
     #[cfg(feature = "stealth")]
     use super::*;

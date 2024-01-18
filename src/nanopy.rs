@@ -5,14 +5,13 @@
 
 // https://docs.nano.org/protocol-design/
 
-use crate::scalar;
 use super::error::NanoError;
 use super::hashes::*;
-use super::{SecretBytes, Scalar, Account, Key, Signature, Block, base32, try_compressed_from_slice};
-use curve25519_dalek::{
-    edwards::CompressedEdwardsY,
-    constants::ED25519_BASEPOINT_POINT as G,
+use super::{
+    base32, try_compressed_from_slice, Account, Block, Key, Scalar, SecretBytes, Signature,
 };
+use crate::scalar;
+use curve25519_dalek::{constants::ED25519_BASEPOINT_POINT as G, edwards::CompressedEdwardsY};
 
 pub(crate) fn account_encode(key: &CompressedEdwardsY) -> String {
     let key = key.as_bytes();
@@ -28,18 +27,17 @@ pub(crate) fn account_encode(key: &CompressedEdwardsY) -> String {
 
 pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoError> {
     if account.len() != 65 {
-        return Err(NanoError::InvalidAddressLength)
+        return Err(NanoError::InvalidAddressLength);
     }
 
     if &account[..5] != "nano_" {
-        return Err(NanoError::InvalidAddressPrefix)
+        return Err(NanoError::InvalidAddressPrefix);
     }
 
     let mut data = "1111".to_string();
     data.push_str(&account[5..]);
 
-    let data = base32::decode(&data)
-        .ok_or(NanoError::InvalidBase32)?;
+    let data = base32::decode(&data).ok_or(NanoError::InvalidBase32)?;
 
     let checksum = &data[35..40];
     let key = &data[3..35];
@@ -47,7 +45,7 @@ pub(crate) fn account_decode(account: &str) -> Result<CompressedEdwardsY, NanoEr
     calculated_checksum.reverse();
 
     if checksum != calculated_checksum {
-        return Err(NanoError::InvalidAddressChecksum)
+        return Err(NanoError::InvalidAddressChecksum);
     }
     try_compressed_from_slice(key)
 }
@@ -64,9 +62,10 @@ pub fn get_account_scalar(master_seed: &SecretBytes<32>, i: u32) -> Scalar {
 
 /// Get work using the local CPU (likely very slow)
 pub fn get_local_work(block_hash: [u8; 32], difficulty: [u8; 8]) -> [u8; 8] {
-    let mut data: [u8; 40] = [
-        [0; 8].as_slice(), &block_hash
-    ].concat().try_into().unwrap();
+    let mut data: [u8; 40] = [[0; 8].as_slice(), &block_hash]
+        .concat()
+        .try_into()
+        .unwrap();
     let mut bytes: [u8; 8];
 
     let mut i: usize;
@@ -77,7 +76,7 @@ pub fn get_local_work(block_hash: [u8; 32], difficulty: [u8; 8]) -> [u8; 8] {
         if bytes >= difficulty {
             let mut work: [u8; 8] = data[..8].try_into().unwrap();
             work.reverse();
-            return work
+            return work;
         }
         i = 0;
         loop {
@@ -95,9 +94,7 @@ pub fn check_work(work_hash: [u8; 32], difficulty: [u8; 8], work: [u8; 8]) -> bo
     let mut work = work;
     work.reverse();
 
-    let mut bytes = blake2b_work(&
-        [work.as_slice(), &work_hash].concat()
-    );
+    let mut bytes = blake2b_work(&[work.as_slice(), &work_hash].concat());
     bytes.reverse();
 
     bytes >= difficulty
@@ -112,16 +109,14 @@ pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Sig
     let r_point = r * G;
     let r_point_bytes = r_point.compress().to_bytes();
 
-    let message = scalar!(blake2b512(
-        &[&r_point_bytes, &public_key, message].concat()
-    ));
+    let message = scalar!(blake2b512(&[&r_point_bytes, &public_key, message].concat()));
 
     //s = r + H(m, pk, m)a
     let s = r + (message * private_key.as_scalar());
 
     Signature {
         r: r_point,
-        s: s.as_ref().to_owned()
+        s: s.as_ref().to_owned(),
     }
 }
 
@@ -129,9 +124,7 @@ pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Sig
 ///
 /// This function does **not** produce identical signatures to the original Python `nanopy` library.
 pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
-    let r = blake2b_scalar(
-        &[private_key.as_scalar().as_bytes(), message].concat()
-    );
+    let r = blake2b_scalar(&[private_key.as_scalar().as_bytes(), message].concat());
     sign_message_with_r(message, private_key, &r)
 }
 
@@ -139,7 +132,12 @@ pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
 pub fn is_valid_signature(message: &[u8], signature: Signature, public_key: &Account) -> bool {
     let r_bytes: [u8; 32] = signature.r.compress().to_bytes();
     let message = scalar!(blake2b512(
-        &[r_bytes.as_slice(), public_key.compressed.as_bytes(), message].concat()
+        &[
+            r_bytes.as_slice(),
+            public_key.compressed.as_bytes(),
+            message
+        ]
+        .concat()
     ));
 
     //sG == R + H(m, pk, m)A
@@ -147,12 +145,17 @@ pub fn is_valid_signature(message: &[u8], signature: Signature, public_key: &Acc
 }
 
 pub(crate) fn hash_block(block: &Block) -> [u8; 32] {
-    *blake2b256(&[
-        [0; 31].as_slice(), &[6],
-        block.account.compressed.as_bytes(),
-        &block.previous,
-        block.representative.compressed.as_bytes(),
-        &block.balance.to_be_bytes(),
-        &block.link
-    ].concat()).as_ref()
+    *blake2b256(
+        &[
+            [0; 31].as_slice(),
+            &[6],
+            block.account.compressed.as_bytes(),
+            &block.previous,
+            block.representative.compressed.as_bytes(),
+            &block.balance.to_be_bytes(),
+            &block.link,
+        ]
+        .concat(),
+    )
+    .as_ref()
 }

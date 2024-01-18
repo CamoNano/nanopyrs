@@ -1,11 +1,11 @@
 use crate::NanoError;
-use serde_json as json;
+use hex::FromHexError;
 use json::Error as JsonError;
 use reqwest::Error as ReqwestError;
-use thiserror::Error;
-use std::num::ParseIntError;
+use serde_json as json;
 use std::convert::From;
-use hex::FromHexError;
+use std::num::ParseIntError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RpcError {
@@ -21,14 +21,12 @@ pub enum RpcError {
     InvalidData,
     /// Cannot publish block of type `legacy`
     #[error("cannot publish block of type 'legacy'")]
-    LegacyBlockType
+    LegacyBlockType,
 }
 impl RpcError {
     /// Maps `Some(T)` to `Ok(T)`, and `None` to `RpcError::ParseError`
     pub fn from_option<T>(option: Option<T>) -> Result<T, RpcError> {
-        option.ok_or(
-            RpcError::ParseError("Option<T> returned empty".into())
-        )
+        option.ok_or(RpcError::ParseError("Option<T> returned empty".into()))
     }
 }
 impl From<ParseIntError> for RpcError {

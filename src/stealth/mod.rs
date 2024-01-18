@@ -1,5 +1,5 @@
-mod version;
 mod v1;
+mod version;
 
 // pub mod hazmat {
 //     pub mod v1 {
@@ -8,17 +8,15 @@ mod v1;
 // }
 
 use crate::{
-    auto_from_impl,
-    version_bits,
-    base32,
-    NanoError, Key, Account, Block, Signature, SecretBytes,
-    constants::{STEALTH_ACCOUNT_PREFIX, STEALTH_PREFIX_LEN, ADDRESS_CHARS_SAMPLE_END}
+    auto_from_impl, base32,
+    constants::{ADDRESS_CHARS_SAMPLE_END, STEALTH_ACCOUNT_PREFIX, STEALTH_PREFIX_LEN},
+    version_bits, Account, Block, Key, NanoError, SecretBytes, Signature,
 };
-use v1::{StealthKeysV1, StealthViewKeysV1, StealthAccountV1};
+use curve25519_dalek::edwards::EdwardsPoint;
 use std::fmt::Display;
 use std::str::FromStr;
+use v1::{StealthAccountV1, StealthKeysV1, StealthViewKeysV1};
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use curve25519_dalek::edwards::EdwardsPoint;
 
 pub use version::StealthAccountVersions;
 
@@ -40,9 +38,7 @@ macro_rules! unwrap_enum {
     };
 }
 
-
-
-pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
+pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     type ViewKeysType: StealthViewKeysTrait;
     type AccountType: StealthAccountTrait;
 
@@ -71,15 +67,20 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop  {
 #[repr(u32)]
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
-    V1(Box<StealthKeysV1>) = 1
+    V1(Box<StealthKeysV1>) = 1,
 }
 impl StealthKeys {
     /// Returns `None` if no supported version is given
-    pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: StealthAccountVersions) -> Option<StealthKeys> {
+    pub fn from_seed(
+        seed: &SecretBytes<32>,
+        i: u32,
+        versions: StealthAccountVersions,
+    ) -> Option<StealthKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Some(StealthKeys::V1(
-                Box::new(StealthKeysV1::from_seed(seed, i, versions)) )),
-            _ => None
+            Some(1) => Some(StealthKeys::V1(Box::new(StealthKeysV1::from_seed(
+                seed, i, versions,
+            )))),
+            _ => None,
         }
     }
 
@@ -124,17 +125,21 @@ impl StealthKeys {
     }
 }
 
-
-
 pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     type AccountType: StealthAccountTrait;
 
-    fn from_seed(view_seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Self;
+    fn from_seed(
+        view_seed: &SecretBytes<32>,
+        master_spend: EdwardsPoint,
+        i: u32,
+        versions: StealthAccountVersions,
+    ) -> Self;
     fn to_stealth_account(&self) -> Self::AccountType;
 
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account().is_valid_signature(message, signature)
+        self.notification_account()
+            .is_valid_signature(message, signature)
     }
 
     fn get_versions(&self) -> StealthAccountVersions;
@@ -150,7 +155,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 #[repr(u32)]
 #[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
-    V1(Box<StealthViewKeysV1>) = 1
+    V1(Box<StealthViewKeysV1>) = 1,
 }
 impl StealthViewKeys {
     pub fn from_keys(keys: StealthKeys) -> StealthViewKeys {
@@ -158,11 +163,20 @@ impl StealthViewKeys {
     }
 
     /// Returns `None` if no supported version is given
-    pub fn from_seed(seed: &SecretBytes<32>, master_spend: EdwardsPoint, i: u32, versions: StealthAccountVersions) -> Option<StealthViewKeys> {
+    pub fn from_seed(
+        seed: &SecretBytes<32>,
+        master_spend: EdwardsPoint,
+        i: u32,
+        versions: StealthAccountVersions,
+    ) -> Option<StealthViewKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Some(StealthViewKeys::V1(
-                Box::new(StealthViewKeysV1::from_seed(seed, master_spend, i, versions)) )),
-            _ => None
+            Some(1) => Some(StealthViewKeys::V1(Box::new(StealthViewKeysV1::from_seed(
+                seed,
+                master_spend,
+                i,
+                versions,
+            )))),
+            _ => None,
         }
     }
 
@@ -185,7 +199,8 @@ impl StealthViewKeys {
 
     /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account().is_valid_signature(message, signature)
+        self.notification_account()
+            .is_valid_signature(message, signature)
     }
 
     /// Get the versions which this `stealth_` account supports
@@ -230,23 +245,21 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeys {
 
         let value = match StealthViewKeysV1::try_from(value) {
             Ok(value) => value,
-            Err(_) => return Err(())
+            Err(_) => return Err(()),
         };
         match versions.highest_supported_version() {
             Some(1) => Ok(StealthViewKeys::V1(Box::new(value))),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
 impl From<&StealthKeys> for StealthViewKeys {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V1(v1) => StealthViewKeys::V1( Box::new(v1.to_view_keys()) )
+            StealthKeys::V1(v1) => StealthViewKeys::V1(Box::new(v1.to_view_keys())),
         }
     }
 }
-
-
 
 pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq {
     type KeysType: StealthKeysTrait;
@@ -254,14 +267,15 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
     fn from_keys(keys: Self::KeysType) -> Self;
     fn from_data(account: &str, data: &[u8]) -> Result<Self, NanoError>;
     fn from_str(account: &str) -> Result<Self, NanoError> {
-        let data = base32::decode(&account[STEALTH_PREFIX_LEN..])
-            .ok_or(NanoError::InvalidBase32)?;
+        let data =
+            base32::decode(&account[STEALTH_PREFIX_LEN..]).ok_or(NanoError::InvalidBase32)?;
         Self::from_data(account, &data)
     }
 
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account().is_valid_signature(message, signature)
+        self.notification_account()
+            .is_valid_signature(message, signature)
     }
 
     fn get_versions(&self) -> StealthAccountVersions;
@@ -280,7 +294,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
 #[repr(u32)]
 #[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
 pub enum StealthAccount {
-    V1(Box<StealthAccountV1>) = 1
+    V1(Box<StealthAccountV1>) = 1,
 }
 impl StealthAccount {
     pub fn from_keys(keys: StealthKeys) -> StealthAccount {
@@ -298,7 +312,8 @@ impl StealthAccount {
 
     /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account().is_valid_signature(message, signature)
+        self.notification_account()
+            .is_valid_signature(message, signature)
     }
 
     /// Get the versions which this `stealth_` account supports
@@ -320,9 +335,7 @@ impl StealthAccount {
     }
 
     pub fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
-        self.derive_account_from_secret(
-            &self.sender_ecdh(sender_key), i
-        )
+        self.derive_account_from_secret(&self.sender_ecdh(sender_key), i)
     }
 }
 impl FromStr for StealthAccount {
@@ -330,17 +343,16 @@ impl FromStr for StealthAccount {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // sanity check to prevent panic
         if s.len() < ADDRESS_CHARS_SAMPLE_END {
-            return Err(NanoError::InvalidAddressLength)
+            return Err(NanoError::InvalidAddressLength);
         }
         if &s[..STEALTH_PREFIX_LEN] != STEALTH_ACCOUNT_PREFIX {
-            return Err(NanoError::InvalidAddressPrefix)
+            return Err(NanoError::InvalidAddressPrefix);
         }
         let address_sample = &s[STEALTH_PREFIX_LEN..ADDRESS_CHARS_SAMPLE_END];
-        let data = base32::decode(address_sample)
-            .ok_or(NanoError::InvalidBase32)?;
+        let data = base32::decode(address_sample).ok_or(NanoError::InvalidBase32)?;
 
         match version_bits!(data[0]).highest_supported_version() {
-            Some(1) => Ok(StealthAccount::V1( Box::new(StealthAccountV1::from_str(s)?) )),
+            Some(1) => Ok(StealthAccount::V1(Box::new(StealthAccountV1::from_str(s)?))),
             _ => Err(NanoError::IncompatibleStealthVersions),
         }
     }
@@ -352,14 +364,14 @@ auto_from_impl!(From: StealthViewKeys => StealthAccount);
 impl From<&StealthKeys> for StealthAccount {
     fn from(value: &StealthKeys) -> Self {
         match value {
-            StealthKeys::V1(v1) => StealthAccount::V1( Box::new(v1.to_stealth_account()) )
+            StealthKeys::V1(v1) => StealthAccount::V1(Box::new(v1.to_stealth_account())),
         }
     }
 }
 impl From<&StealthViewKeys> for StealthAccount {
     fn from(value: &StealthViewKeys) -> Self {
         match value {
-            StealthViewKeys::V1(v1) => StealthAccount::V1( Box::new(v1.to_stealth_account()) )
+            StealthViewKeys::V1(v1) => StealthAccount::V1(Box::new(v1.to_stealth_account())),
         }
     }
 }
@@ -369,8 +381,6 @@ impl Display for StealthAccount {
         write!(f, "{}", as_string)
     }
 }
-
-
 
 pub(super) trait AutoTestUtils: Sized {
     fn unwrap(self) -> Self {
@@ -385,8 +395,8 @@ macro_rules! stealth_address_tests {
 
         #[cfg(test)]
         mod tests {
-            use crate::versions;
             use super::*;
+            use crate::versions;
 
             #[test]
             fn stealth_account() {
@@ -429,7 +439,9 @@ macro_rules! stealth_address_tests {
                 let recipient_view_keys = recipient_keys.to_view_keys();
                 let recipient_account = recipient_keys.to_stealth_account();
 
-                let recipient_derived = recipient_keys.derive_key(sender_account.clone(), 0).to_account();
+                let recipient_derived = recipient_keys
+                    .derive_key(sender_account.clone(), 0)
+                    .to_account();
                 let recipient_vk_derived = recipient_view_keys.derive_account(sender_account, 0);
                 let sender_derived = recipient_account.derive_account(&sender_keys, 0);
 
@@ -440,7 +452,9 @@ macro_rules! stealth_address_tests {
             #[test]
             fn view_keys_bytes() {
                 let seed = SecretBytes::from([42; 32]);
-                let sender_view_keys_1 = $keys::from_seed(&seed, 99, $versions).unwrap().to_view_keys();
+                let sender_view_keys_1 = $keys::from_seed(&seed, 99, $versions)
+                    .unwrap()
+                    .to_view_keys();
 
                 let bytes: SecretBytes<65> = (&sender_view_keys_1).into();
                 let sender_view_keys_2 = $view_keys::try_from(bytes).unwrap().into();

@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use std::error::Error;
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NanoError {
@@ -15,7 +15,7 @@ pub enum NanoError {
     InvalidBase32,
     /// incompatible stealth protocol versions
     #[cfg(feature = "stealth")]
-    IncompatibleStealthVersions
+    IncompatibleStealthVersions,
 }
 impl Display for NanoError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -26,8 +26,9 @@ impl Display for NanoError {
             NanoError::InvalidAddressChecksum => "invalid checksum",
             NanoError::InvalidCurvePoint => "invalid ed25519 point",
             #[cfg(feature = "stealth")]
-            NanoError::IncompatibleStealthVersions => "incompatible stealth protocol versions"
-        }.into();
+            NanoError::IncompatibleStealthVersions => "incompatible stealth protocol versions",
+        }
+        .into();
         write!(f, "{string}")
     }
 }

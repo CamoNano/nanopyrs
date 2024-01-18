@@ -1,17 +1,14 @@
 mod encode;
-mod parse;
 mod error;
+mod parse;
 
 pub mod debug;
 pub mod util;
 
 use crate::{Account, Block};
 use debug::DebugRpc;
+use json::{Map, Value as JsonValue};
 use serde_json as json;
-use json::{
-    Value as JsonValue,
-    Map
-};
 
 pub use error::RpcError;
 
@@ -43,10 +40,13 @@ impl Rpc {
     }
 
     /// Send a request to the node with `action` set to `[command]`, and setting the given `arguments`
-    pub async fn command(&self, command: &str, arguments: Map<String, JsonValue>) -> Result<JsonValue, RpcError> {
+    pub async fn command(
+        &self,
+        command: &str,
+        arguments: Map<String, JsonValue>,
+    ) -> Result<JsonValue, RpcError> {
         self.0.command(command, arguments).await.result
     }
-
 
     pub async fn account_balance(&self, account: &Account) -> Result<u128, RpcError> {
         self.0.account_balance(account).await.result
@@ -54,7 +54,12 @@ impl Rpc {
 
     /// Lists the account's blocks, starting at `head` (or the newest block if `head` is `None`), and going back at most `count` number of blocks.
     /// Will stop at first legacy block.
-    pub async fn account_history(&self, account: &Account, count: usize, head: Option<[u8; 32]>) -> Result<Vec<Block>, RpcError> {
+    pub async fn account_history(
+        &self,
+        account: &Account,
+        count: usize,
+        head: Option<[u8; 32]>,
+    ) -> Result<Vec<Block>, RpcError> {
         self.0.account_history(account, count, head).await.result
     }
 
@@ -69,17 +74,31 @@ impl Rpc {
 
     /// Returns the hash of the frontier (newest) block of the given accounts.
     /// If an account is not yet opened, its frontier will be returned as `None`.
-    pub async fn accounts_frontiers(&self, accounts: &[Account]) -> Result<Vec<Option<[u8; 32]>>, RpcError> {
+    pub async fn accounts_frontiers(
+        &self,
+        accounts: &[Account],
+    ) -> Result<Vec<Option<[u8; 32]>>, RpcError> {
         self.0.accounts_frontiers(accounts).await.result
     }
 
     /// For each account, returns the receivable transactions as `Vec<(block_hash, amount)>`
-    pub async fn accounts_receivable(&self, accounts: &[Account], count: usize, threshold: u128) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
-        self.0.accounts_receivable(accounts, count, threshold).await.result
+    pub async fn accounts_receivable(
+        &self,
+        accounts: &[Account],
+        count: usize,
+        threshold: u128,
+    ) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
+        self.0
+            .accounts_receivable(accounts, count, threshold)
+            .await
+            .result
     }
 
     /// If an account is not yet opened, its frontier will be returned as `None`
-    pub async fn accounts_representatives(&self, accounts: &[Account]) -> Result<Vec<Option<Account>>, RpcError> {
+    pub async fn accounts_representatives(
+        &self,
+        accounts: &[Account],
+    ) -> Result<Vec<Option<Account>>, RpcError> {
         self.0.accounts_representatives(accounts).await.result
     }
 
@@ -99,7 +118,14 @@ impl Rpc {
     }
 
     /// Returns the generated work, assuming no error is encountered
-    pub async fn work_generate(&self, work_hash: [u8; 32], custom_difficulty: Option<[u8; 8]>) -> Result<[u8; 8], RpcError> {
-        self.0.work_generate(work_hash, custom_difficulty).await.result
+    pub async fn work_generate(
+        &self,
+        work_hash: [u8; 32],
+        custom_difficulty: Option<[u8; 8]>,
+    ) -> Result<[u8; 8], RpcError> {
+        self.0
+            .work_generate(work_hash, custom_difficulty)
+            .await
+            .result
     }
 }

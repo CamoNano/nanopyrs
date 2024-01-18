@@ -1,42 +1,36 @@
 use crate::auto_from_impl;
 use auto_ops::{impl_op_ex, impl_op_ex_commutative};
+use curve25519_dalek::{
+    edwards::EdwardsPoint,
+    scalar::{clamp_integer, Scalar as RawScalar},
+};
 use std::convert::From;
 use std::fmt::Debug;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use curve25519_dalek::{
-    scalar::{Scalar as RawScalar, clamp_integer},
-    edwards::EdwardsPoint
-};
 
 use super::error::NanoError;
 
 /// Create a `SecretBytes<T>`
 #[macro_export]
 macro_rules! secret {
-    ($data: expr) => {
-        {
-            use $crate::SecretBytes;
-            SecretBytes::from($data)
-        }
-    };
+    ($data: expr) => {{
+        use $crate::SecretBytes;
+        SecretBytes::from($data)
+    }};
 }
 /// Create a `Scalar`
 #[macro_export]
 macro_rules! scalar {
-    ($data: expr) => {
-        {
-            use $crate::Scalar;
-            Scalar::from($data)
-        }
-    };
+    ($data: expr) => {{
+        use $crate::Scalar;
+        Scalar::from($data)
+    }};
 }
-
-
 
 /// A wrapper for `[u8; T]` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct SecretBytes<const T: usize> {
-    bytes: Box<[u8; T]>
+    bytes: Box<[u8; T]>,
 }
 impl<const T: usize> SecretBytes<T> {
     pub fn as_bytes(&self) -> &[u8; T] {
@@ -51,7 +45,9 @@ impl<const T: usize> SecretBytes<T> {
 }
 impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
     fn from(mut value: [u8; T]) -> Self {
-        let secret = SecretBytes{bytes: Box::new(value)};
+        let secret = SecretBytes {
+            bytes: Box::new(value),
+        };
         value.zeroize();
         secret
     }
@@ -72,12 +68,10 @@ impl<const T: usize> Debug for SecretBytes<T> {
     }
 }
 
-
-
 /// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Scalar {
-    scalar: Box<RawScalar>
+    scalar: Box<RawScalar>,
 }
 impl Scalar {
     /// From 32 bytes, manipulating them as needed
@@ -115,10 +109,10 @@ auto_from_impl!(From: SecretBytes<64> => Scalar);
 
 impl From<&SecretBytes<32>> for Scalar {
     fn from(value: &SecretBytes<32>) -> Self {
-        Scalar{
-            scalar: Box::new(
-                RawScalar::from_bytes_mod_order(clamp_integer(*value.as_ref()))
-            )
+        Scalar {
+            scalar: Box::new(RawScalar::from_bytes_mod_order(clamp_integer(
+                *value.as_ref(),
+            ))),
         }
     }
 }
@@ -139,7 +133,9 @@ impl From<[u8; 64]> for Scalar {
 }
 impl From<RawScalar> for Scalar {
     fn from(mut value: RawScalar) -> Self {
-        let scalar = Scalar{ scalar: Box::new(value) };
+        let scalar = Scalar {
+            scalar: Box::new(value),
+        };
         value.zeroize();
         scalar
     }
@@ -160,33 +156,19 @@ impl Debug for Scalar {
     }
 }
 
-impl_op_ex!(- |a: &Scalar| -> Scalar {
-    Scalar::from(-a.as_ref())
-});
+impl_op_ex!(-|a: &Scalar| -> Scalar { Scalar::from(-a.as_ref()) });
 
 impl_op_ex!(+ |a: &Scalar, b: &Scalar| -> Scalar {
     Scalar::from(a.as_ref() + b.as_ref())
 });
-impl_op_ex!(* |a: &Scalar, b: &Scalar| -> Scalar {
-    Scalar::from(a.as_ref() * b.as_ref())
-});
-impl_op_ex!(- |a: &Scalar, b: &Scalar| -> Scalar {
-    Scalar::from(a.as_ref() - b.as_ref())
-});
+impl_op_ex!(*|a: &Scalar, b: &Scalar| -> Scalar { Scalar::from(a.as_ref() * b.as_ref()) });
+impl_op_ex!(-|a: &Scalar, b: &Scalar| -> Scalar { Scalar::from(a.as_ref() - b.as_ref()) });
 
 impl_op_ex_commutative!(+ |a: &Scalar, b: &RawScalar| -> Scalar {
     Scalar::from(a.as_ref() + b)
 });
-impl_op_ex_commutative!(* |a: &Scalar, b: &RawScalar| -> Scalar {
-    Scalar::from(a.as_ref() * b)
-});
-impl_op_ex!(- |a: &Scalar, b: &RawScalar| -> Scalar {
-    Scalar::from(a.as_ref() - b)
-});
-impl_op_ex!(- |a: &RawScalar, b: &Scalar| -> Scalar {
-    Scalar::from(a - b.as_ref())
-});
+impl_op_ex_commutative!(*|a: &Scalar, b: &RawScalar| -> Scalar { Scalar::from(a.as_ref() * b) });
+impl_op_ex!(-|a: &Scalar, b: &RawScalar| -> Scalar { Scalar::from(a.as_ref() - b) });
+impl_op_ex!(-|a: &RawScalar, b: &Scalar| -> Scalar { Scalar::from(a - b.as_ref()) });
 
-impl_op_ex_commutative!(* |a: &Scalar, b: &EdwardsPoint| -> EdwardsPoint {
-    a.as_ref() * b
-});
+impl_op_ex_commutative!(*|a: &Scalar, b: &EdwardsPoint| -> EdwardsPoint { a.as_ref() * b });

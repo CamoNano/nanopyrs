@@ -340,7 +340,7 @@ mod tests {
         let hash_2: [u8; 32] = hex::decode("6A32397F4E95AF025DE29D9BF1ACE864D5404362258E06489FABDBA9DCCC046F").unwrap().try_into().unwrap();
         assert!(frontiers[0] == Some(hash_1));
         assert!(frontiers[1] == Some(hash_2));
-        assert!(frontiers[2] == None)
+        assert!(frontiers[2].is_none())
     }
 
     #[test]
@@ -395,7 +395,7 @@ mod tests {
 
         assert!(representatives[0] == Some("nano_3hd4ezdgsp15iemx7h81in7xz5tpxi43b6b41zn3qmwiuypankocw3awes5k".try_into().unwrap()));
         assert!(representatives[1] == Some("nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap()));
-        assert!(representatives[2] == None)
+        assert!(representatives[2].is_none())
     }
 
     #[test]
@@ -441,7 +441,7 @@ mod tests {
         let block = super::block_info(
             json!({"error":"Block not found"})
         ).unwrap();
-        assert!(block == None)
+        assert!(block.is_none())
     }
 
     #[test]
@@ -472,10 +472,10 @@ mod tests {
                     }
                 }
             }),
-            &vec!(
+            &[
                 hex::decode("87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9").unwrap().try_into().unwrap(),
                 hex::decode("5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5").unwrap().try_into().unwrap()
-            )
+            ]
         ).unwrap();
 
         let signature: [u8; 64] = hex::decode("82D41BC16F313E4B2243D14DFFA2FB04679C540C2095FEE7EAE0F2F26880AD56DD48D87A7CC5DD760C5B2D76EE2C205506AA557BF00B60D8DEE312EC7343A501").unwrap().try_into().unwrap();

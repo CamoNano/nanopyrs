@@ -83,22 +83,22 @@ mod tests {
     #[test]
     fn blake2b512() {
         let result = super::blake2b512(b"test");
-        assert!(&result.as_ref()[..5] == &[167, 16, 121, 212, 40])
+        assert!(result.as_ref()[..5] == [167, 16, 121, 212, 40])
     }
     #[test]
     fn blake2b256() {
         let result = super::blake2b256(b"test");
-        assert!(&result.as_ref()[..5] == &[146, 139, 32, 54, 105])
+        assert!(result.as_ref()[..5] == [146, 139, 32, 54, 105])
     }
     #[test]
     fn blake2b_work() {
         let result = super::blake2b_work(b"test");
-        assert!(&result.as_ref()[..5] == &[150, 173, 59, 180, 162])
+        assert!(result.as_ref()[..5] == [150, 173, 59, 180, 162])
     }
     #[test]
     fn blake2b_checksum() {
         let result = super::blake2b_checksum(b"test");
-        assert!(&result.as_ref()[..5] == &[210, 40, 235, 33, 186])
+        assert!(result.as_ref()[..5] == [210, 40, 235, 33, 186])
     }
     // blake2b_scalar is covered by blake2b512
 }

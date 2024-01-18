@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn highest_supported_version() {
         assert!(TEST_VERSIONS_1.highest_supported_version() == Some(1));
-        assert!(TEST_VERSIONS_2.highest_supported_version() == None);
+        assert!(TEST_VERSIONS_2.highest_supported_version().is_none());
         assert!(TEST_VERSIONS_3.highest_supported_version() == Some(1));
     }
 

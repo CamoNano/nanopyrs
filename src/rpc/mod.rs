@@ -68,8 +68,8 @@ impl Rpc {
     }
 
     /// Returns the hash of the frontier (newest) block of the given accounts.
-    /// If an account is not yet opened, its frontier will be returned as `[0; 32]`
-    pub async fn accounts_frontiers(&self, accounts: &[Account]) -> Result<Vec<[u8; 32]>, RpcError> {
+    /// If an account is not yet opened, its frontier will be returned as `None`.
+    pub async fn accounts_frontiers(&self, accounts: &[Account]) -> Result<Vec<Option<[u8; 32]>>, RpcError> {
         self.0.accounts_frontiers(accounts).await.result
     }
 

@@ -148,8 +148,8 @@ impl StealthAccountVersions {
         StealthAccountVersions::from(versions)
     }
 }
-auto_from_impl!(From, [bool; 8], StealthAccountVersions);
-auto_from_impl!(From, StealthAccountVersions, [bool; 8]);
+auto_from_impl!(From: [bool; 8] => StealthAccountVersions);
+auto_from_impl!(From: StealthAccountVersions => [bool; 8]);
 impl From<&[bool; 8]> for StealthAccountVersions {
     fn from(value: &[bool; 8]) -> Self {
         StealthAccountVersions { supported_versions: *value }

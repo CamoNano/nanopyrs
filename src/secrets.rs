@@ -110,8 +110,8 @@ impl Scalar {
     }
 }
 
-auto_from_impl!(From, SecretBytes<32>, Scalar);
-auto_from_impl!(From, SecretBytes<64>, Scalar);
+auto_from_impl!(From: SecretBytes<32> => Scalar);
+auto_from_impl!(From: SecretBytes<64> => Scalar);
 
 impl From<&SecretBytes<32>> for Scalar {
     fn from(value: &SecretBytes<32>) -> Self {

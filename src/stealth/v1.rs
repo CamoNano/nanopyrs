@@ -186,8 +186,8 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
     }
 }
 
-auto_from_impl!(From, StealthViewKeysV1, SecretBytes<65>);
-auto_from_impl!(TryFrom, SecretBytes<65>, StealthViewKeysV1);
+auto_from_impl!(From: StealthViewKeysV1 => SecretBytes<65>);
+auto_from_impl!(TryFrom: SecretBytes<65> => StealthViewKeysV1);
 
 impl From<&StealthViewKeysV1> for SecretBytes<65> {
     fn from(value: &StealthViewKeysV1) -> Self {

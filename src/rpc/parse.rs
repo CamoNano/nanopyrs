@@ -51,12 +51,12 @@ pub fn accounts_balances(raw_json: JsonValue, accounts: &[Account]) -> Result<Ve
     Ok(balances)
 }
 
-pub fn accounts_frontiers(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<[u8; 32]>, RpcError> {
+pub fn accounts_frontiers(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<Option<[u8; 32]>>, RpcError> {
     let mut frontiers = vec!();
     for account in accounts {
         let frontier = raw_json["frontiers"][account.to_string()].clone();
         if frontier.is_null() {
-            frontiers.push([0; 32]);
+            frontiers.push(None);
             continue;
         }
 
@@ -67,7 +67,7 @@ pub fn accounts_frontiers(raw_json: JsonValue, accounts: &[Account]) -> Result<V
             RpcError::ParseError("failed to parse hashes".into())
         ))?;
 
-        frontiers.push(frontier)
+        frontiers.push(Some(frontier))
     }
     Ok(frontiers)
 }
@@ -338,9 +338,9 @@ mod tests {
 
         let hash_1: [u8; 32] = hex::decode("791AF413173EEE674A6FCF633B5DFC0F3C33F397F0DA08E987D9E0741D40D81A").unwrap().try_into().unwrap();
         let hash_2: [u8; 32] = hex::decode("6A32397F4E95AF025DE29D9BF1ACE864D5404362258E06489FABDBA9DCCC046F").unwrap().try_into().unwrap();
-        assert!(frontiers[0] == hash_1);
-        assert!(frontiers[1] == hash_2);
-        assert!(frontiers[2] == [0; 32])
+        assert!(frontiers[0] == Some(hash_1));
+        assert!(frontiers[1] == Some(hash_2));
+        assert!(frontiers[2] == None)
     }
 
     #[test]

@@ -44,7 +44,7 @@ pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError
 }
 
 macro_rules! auto_from_impl {
-    (TryFrom, $from: ty, $to: ty) => {
+    (TryFrom: $from: ty => $to: ty) => {
         impl TryFrom<$from> for $to {
             type Error = NanoError;
 
@@ -54,10 +54,20 @@ macro_rules! auto_from_impl {
         }
     };
 
-    (From, $from: ty, $to: ty) => {
+    (From: $from: ty => $to: ty) => {
         impl From<$from> for $to {
             fn from(value: $from) -> Self {
                 (&value).into()
+            }
+        }
+    };
+
+    (FromStr: $from: ty) => {
+        use std::str::FromStr;
+        impl FromStr for $from {
+            type Err = NanoError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                <$from>::try_from(s)
             }
         }
     };

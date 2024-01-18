@@ -37,12 +37,12 @@ impl Key {
         Key::from(scalar)
     }
 
-    pub fn to_account(&self) -> Account {
-        Account::from(self)
-    }
-
     pub fn as_scalar(&self) -> &Scalar {
         &self.private
+    }
+
+    pub fn to_account(&self) -> Account {
+        Account::from(self)
     }
 
     /// Sign the `message` with this key, returning a `Signature`
@@ -95,10 +95,6 @@ impl Account {
         Account::from(point)
     }
 
-    pub fn from_string(account: &str) -> Result<Account, NanoError> {
-        Account::try_from(account)
-    }
-
     pub fn from_compressed(compressed: &CompressedEdwardsY) -> Result<Account, NanoError> {
         Account::try_from(compressed)
     }
@@ -126,14 +122,15 @@ impl Account {
     }
 }
 
-auto_from_impl!(From, Account, String);
+auto_from_impl!(FromStr: Account);
+auto_from_impl!(From: Account => String);
+auto_from_impl!(From: Key => Account);
+auto_from_impl!(From: EdwardsPoint => Account);
+auto_from_impl!(TryFrom: String => Account);
+auto_from_impl!(TryFrom: CompressedEdwardsY => Account);
+auto_from_impl!(TryFrom: [u8; 32] => Account);
 #[cfg(feature = "rpc")]
-auto_from_impl!(From, Account, JsonValue);
-auto_from_impl!(From, Key, Account);
-auto_from_impl!(From, EdwardsPoint, Account);
-auto_from_impl!(TryFrom, String, Account);
-auto_from_impl!(TryFrom, CompressedEdwardsY, Account);
-auto_from_impl!(TryFrom, [u8; 32], Account);
+auto_from_impl!(From: Account => JsonValue);
 
 impl From<&Key> for Account {
     fn from(value: &Key) -> Self {
@@ -217,9 +214,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_string() {
+    fn from_str() {
         let genesis = get_genesis_account().to_string();
-        let genesis = Account::try_from(&genesis).unwrap();
+        let genesis = genesis.parse::<Account>().unwrap();
         assert!(genesis == get_genesis_account());
 
         let seed = SecretBytes::from([0; 32]);

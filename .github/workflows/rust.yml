@@ -8,10 +8,10 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -24,5 +24,8 @@ jobs:
     - name: Build (features = stealth)
       run: cargo build --verbose --no-default-features --features stealth
 
-    - name: Run tests (features = all)
+    - name: Run Tests (features = all)
       run: cargo test --verbose --all-features
+
+    - name: Run Clippy
+        run: cargo clippy --all-targets --all-features

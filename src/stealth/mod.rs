@@ -16,6 +16,7 @@ use crate::{
 };
 use v1::{StealthKeysV1, StealthViewKeysV1, StealthAccountV1};
 use std::fmt::Display;
+use std::str::FromStr;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use curve25519_dalek::edwards::EdwardsPoint;
 
@@ -206,8 +207,8 @@ impl StealthViewKeys {
     }
 }
 
-auto_from_impl!(From, StealthViewKeys, SecretBytes<65>);
-auto_from_impl!(From, StealthKeys, StealthViewKeys);
+auto_from_impl!(From: StealthViewKeys => SecretBytes<65>);
+auto_from_impl!(From: StealthKeys => StealthViewKeys);
 
 impl From<&StealthViewKeys> for SecretBytes<65> {
     fn from(value: &StealthViewKeys) -> Self {
@@ -247,12 +248,12 @@ impl From<&StealthKeys> for StealthViewKeys {
 
 
 
-pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
+pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq {
     type KeysType: StealthKeysTrait;
 
     fn from_keys(keys: Self::KeysType) -> Self;
     fn from_data(account: &str, data: &[u8]) -> Result<Self, NanoError>;
-    fn from_string(account: &str) -> Result<Self, NanoError> {
+    fn from_str(account: &str) -> Result<Self, NanoError> {
         let data = base32::decode(&account[STEALTH_PREFIX_LEN..])
             .ok_or(NanoError::InvalidBase32)?;
         Self::from_data(account, &data)
@@ -265,7 +266,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq {
 
     fn get_versions(&self) -> StealthAccountVersions;
     fn is_valid(account: &str) -> bool {
-        Self::from_string(account).is_ok()
+        Self::from_str(account).is_ok()
     }
 
     fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32>;
@@ -290,24 +291,6 @@ impl StealthAccount {
         keys.to_stealth_account()
     }
 
-    pub fn from_string(account: &str) -> Result<Self, NanoError> {
-        // sanity check to prevent panic
-        if account.len() < ADDRESS_CHARS_SAMPLE_END {
-            return Err(NanoError::InvalidAddressLength)
-        }
-        if &account[..STEALTH_PREFIX_LEN] != STEALTH_ACCOUNT_PREFIX {
-            return Err(NanoError::InvalidAddressPrefix)
-        }
-        let address_sample = &account[STEALTH_PREFIX_LEN..ADDRESS_CHARS_SAMPLE_END];
-        let data = base32::decode(address_sample)
-            .ok_or(NanoError::InvalidBase32)?;
-
-        match version_bits!(data[0]).highest_supported_version() {
-            Some(1) => Ok(StealthAccount::V1( Box::new(StealthAccountV1::from_string(account)?) )),
-            _ => Err(NanoError::IncompatibleStealthVersions),
-        }
-    }
-
     /// Account for "notification" transactions to be sent to, if applicable
     pub fn notification_account(&self) -> Account {
         unwrap_enum!(StealthAccount, self.notification_account())
@@ -324,7 +307,7 @@ impl StealthAccount {
     }
 
     pub fn is_valid(account: &str) -> bool {
-        Self::from_string(account).is_ok()
+        Self::from_str(account).is_ok()
     }
 
     /// Calculate the shared secret between this account and the given key.
@@ -342,9 +325,29 @@ impl StealthAccount {
         )
     }
 }
+impl FromStr for StealthAccount {
+    type Err = NanoError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // sanity check to prevent panic
+        if s.len() < ADDRESS_CHARS_SAMPLE_END {
+            return Err(NanoError::InvalidAddressLength)
+        }
+        if &s[..STEALTH_PREFIX_LEN] != STEALTH_ACCOUNT_PREFIX {
+            return Err(NanoError::InvalidAddressPrefix)
+        }
+        let address_sample = &s[STEALTH_PREFIX_LEN..ADDRESS_CHARS_SAMPLE_END];
+        let data = base32::decode(address_sample)
+            .ok_or(NanoError::InvalidBase32)?;
 
-auto_from_impl!(From, StealthKeys, StealthAccount);
-auto_from_impl!(From, StealthViewKeys, StealthAccount);
+        match version_bits!(data[0]).highest_supported_version() {
+            Some(1) => Ok(StealthAccount::V1( Box::new(StealthAccountV1::from_str(s)?) )),
+            _ => Err(NanoError::IncompatibleStealthVersions),
+        }
+    }
+}
+
+auto_from_impl!(From: StealthKeys => StealthAccount);
+auto_from_impl!(From: StealthViewKeys => StealthAccount);
 
 impl From<&StealthKeys> for StealthAccount {
     fn from(value: &StealthKeys) -> Self {
@@ -393,7 +396,7 @@ macro_rules! stealth_address_tests {
                 let account = key.to_stealth_account();
 
                 assert!(account.to_string() == $addr);
-                assert!(account == $account::from_string($addr).unwrap());
+                assert!(account == $account::from_str($addr).unwrap());
 
                 assert!($versions == key.get_versions());
                 assert!($versions == view_keys.get_versions());

@@ -29,8 +29,8 @@ impl Signature {
     }
 }
 
-auto_from_impl!(From, Signature, [u8; 64]);
-auto_from_impl!(TryFrom, [u8; 64], Signature);
+auto_from_impl!(From: Signature => [u8; 64]);
+auto_from_impl!(TryFrom: [u8; 64] => Signature);
 
 impl From<&Signature> for [u8; 64] {
     fn from(value: &Signature) -> Self {

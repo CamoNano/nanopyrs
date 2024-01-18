@@ -149,7 +149,7 @@ pub struct StealthViewKeysV1 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
-    pub private_view: Scalar,
+    private_view: Scalar,
 }
 impl StealthViewKeysTrait for StealthViewKeysV1 {
     type AccountType = StealthAccountV1;
@@ -170,7 +170,7 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
     }
 
     fn notification_account(&self) -> Account {
-        Account::from_compressed(&self.compressed_spend_key).unwrap()
+        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
     }
 
     fn get_versions(&self) -> StealthAccountVersions {
@@ -242,7 +242,7 @@ impl StealthAccountTrait for StealthAccountV1 {
     }
 
     fn notification_account(&self) -> Account {
-        Account::from_compressed(&self.compressed_spend_key).unwrap()
+        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
     }
 
     fn get_versions(&self) -> StealthAccountVersions {

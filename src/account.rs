@@ -103,6 +103,15 @@ impl Account {
         Account::try_from(compressed)
     }
 
+    #[cfg(feature = "stealth")]
+    pub(crate) fn from_both_points(point: &EdwardsPoint, compressed: &CompressedEdwardsY) -> Account {
+        Account {
+            account: account_encode(compressed),
+            compressed: *compressed,
+            point: *point
+        }
+    }
+
     pub fn from_bytes(bytes: [u8; 32]) -> Result<Account, NanoError> {
         Account::try_from(bytes)
     }

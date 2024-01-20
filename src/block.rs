@@ -115,7 +115,7 @@ impl Block {
     pub fn has_valid_signature(&self) -> bool {
         if self.block_type != BlockType::Epoch {
             // "normal" block
-            self.account.to_owned()
+            self.account.clone()
         } else if self.link[7] == 49 {
             // epoch v1
             get_v1_epoch_signer()

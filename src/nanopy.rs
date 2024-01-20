@@ -116,7 +116,7 @@ pub fn sign_message_with_r(message: &[u8], private_key: &Key, r: &Scalar) -> Sig
 
     Signature {
         r: r_point,
-        s: s.as_ref().to_owned(),
+        s: s.into(),
     }
 }
 

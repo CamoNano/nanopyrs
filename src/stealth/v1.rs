@@ -19,7 +19,7 @@ use curve25519_dalek::{
 use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-fn ecdh(key_1: &Scalar, key_2: EdwardsPoint) -> SecretBytes<32> {
+fn ecdh(key_1: &Scalar, key_2: &EdwardsPoint) -> SecretBytes<32> {
     secret!((key_1 * key_2).compress().to_bytes())
 }
 
@@ -143,8 +143,8 @@ impl StealthKeysTrait for StealthKeysV1 {
         self.versions
     }
 
-    fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
-        ecdh(&self.private_view, sender_account.point)
+    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
+        ecdh(&self.private_view, &sender_account.point)
     }
 
     fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key {
@@ -190,8 +190,8 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
         self.versions
     }
 
-    fn receiver_ecdh(&self, sender_key: Account) -> SecretBytes<32> {
-        ecdh(&self.private_view, sender_key.point)
+    fn receiver_ecdh(&self, sender_key: &Account) -> SecretBytes<32> {
+        ecdh(&self.private_view, &sender_key.point)
     }
 
     fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
@@ -264,7 +264,7 @@ impl StealthAccountTrait for StealthAccountV1 {
     }
 
     fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32> {
-        ecdh(sender_key.as_scalar(), self.point_view_key)
+        ecdh(sender_key.as_scalar(), &self.point_view_key)
     }
 
     fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
@@ -273,7 +273,7 @@ impl StealthAccountTrait for StealthAccountV1 {
 }
 impl Display for StealthAccountV1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.account.clone())
+        write!(f, "{}", self.account)
     }
 }
 

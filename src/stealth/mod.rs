@@ -56,9 +56,9 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 
     fn get_versions(&self) -> StealthAccountVersions;
 
-    fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32>;
+    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32>;
     fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key;
-    fn derive_key(&self, sender_account: Account, i: u32) -> Key {
+    fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
         self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
     }
 }
@@ -112,7 +112,7 @@ impl StealthKeys {
     }
 
     /// Calculate the shared secret between this key and the given account.
-    pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
+    pub fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
         unwrap_enum!(StealthKeys, self.receiver_ecdh(sender_account))
     }
 
@@ -120,7 +120,7 @@ impl StealthKeys {
         unwrap_enum!(StealthKeys, self.derive_key_from_secret(secret, i))
     }
 
-    pub fn derive_key(&self, sender_account: Account, i: u32) -> Key {
+    pub fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
         self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
     }
 }
@@ -144,9 +144,9 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 
     fn get_versions(&self) -> StealthAccountVersions;
 
-    fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32>;
+    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32>;
     fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account;
-    fn derive_account(&self, sender_account: Account, i: u32) -> Account {
+    fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
     }
 }
@@ -209,7 +209,7 @@ impl StealthViewKeys {
     }
 
     /// Calculate the shared secret between this key and the given account.
-    pub fn receiver_ecdh(&self, sender_account: Account) -> SecretBytes<32> {
+    pub fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
         unwrap_enum!(StealthViewKeys, self.receiver_ecdh(sender_account))
     }
 
@@ -217,7 +217,7 @@ impl StealthViewKeys {
         unwrap_enum!(StealthViewKeys, self.derive_account_from_secret(secret, i))
     }
 
-    pub fn derive_account(&self, sender_account: Account, i: u32) -> Account {
+    pub fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
     }
 }
@@ -440,9 +440,9 @@ macro_rules! stealth_address_tests {
                 let recipient_account = recipient_keys.to_stealth_account();
 
                 let recipient_derived = recipient_keys
-                    .derive_key(sender_account.clone(), 0)
+                    .derive_key(&sender_account, 0)
                     .to_account();
-                let recipient_vk_derived = recipient_view_keys.derive_account(sender_account, 0);
+                let recipient_vk_derived = recipient_view_keys.derive_account(&sender_account, 0);
                 let sender_derived = recipient_account.derive_account(&sender_keys, 0);
 
                 assert!(recipient_derived == recipient_vk_derived);

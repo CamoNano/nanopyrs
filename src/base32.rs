@@ -30,7 +30,7 @@ pub fn decode(s: &str) -> Option<Vec<u8>> {
         bits.extend_from_bitslice(&char_bits[(8 - 5)..8]);
     }
 
-    Some(bits.to_owned().into_vec())
+    Some(bits.into_vec())
 }
 
 #[cfg(test)]

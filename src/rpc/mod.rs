@@ -25,12 +25,12 @@ impl Rpc {
     }
 
     /// Get the url of this RPC
-    pub fn get_url(&self) -> String {
+    pub fn get_url(&self) -> &str {
         self.0.get_url()
     }
 
     /// Get the proxy of this RPC, if set
-    pub fn get_proxy(&self) -> Option<String> {
+    pub fn get_proxy(&self) -> Option<&str> {
         self.0.get_proxy()
     }
 

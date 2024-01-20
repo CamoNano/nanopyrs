@@ -146,6 +146,12 @@ impl From<&EdwardsPoint> for Account {
 impl TryFrom<&String> for Account {
     type Error = NanoError;
     fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Account::try_from(&value as &str)
+    }
+}
+impl TryFrom<&str> for Account {
+    type Error = NanoError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let compressed = account_decode(value)?;
         let point = compressed
             .decompress()
@@ -155,12 +161,6 @@ impl TryFrom<&String> for Account {
             compressed,
             point,
         })
-    }
-}
-impl TryFrom<&str> for Account {
-    type Error = NanoError;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Account::try_from(value.to_owned())
     }
 }
 impl TryFrom<&CompressedEdwardsY> for Account {

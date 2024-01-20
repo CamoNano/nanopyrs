@@ -8,12 +8,12 @@ pub fn account_balance(raw_json: JsonValue) -> Result<u128, RpcError> {
 
 /// Will stop at first legacy block
 pub fn account_history(raw_json: JsonValue, account: &Account) -> Result<Vec<Block>, RpcError> {
-    let json_blocks = raw_json["history"].clone();
+    let json_blocks = &raw_json["history"];
     let json_blocks = RpcError::from_option(json_blocks.as_array())?;
 
     let mut blocks: Vec<Block> = vec![];
     for block in json_blocks {
-        if trim_json(block["type"].to_string()) != "state" {
+        if trim_json(&block["type"].to_string()) != "state" {
             break;
         }
 
@@ -57,13 +57,13 @@ pub fn accounts_frontiers(
 ) -> Result<Vec<Option<[u8; 32]>>, RpcError> {
     let mut frontiers = vec![];
     for account in accounts {
-        let frontier = raw_json["frontiers"][account.to_string()].clone();
+        let frontier = &raw_json["frontiers"][account.to_string()];
         if frontier.is_null() {
             frontiers.push(None);
             continue;
         }
 
-        let frontier = hex::decode(trim_json(frontier.to_string()))?;
+        let frontier = hex::decode(trim_json(&frontier.to_string()))?;
         let frontier = frontier
             .try_into()
             .or(Err(RpcError::ParseError("failed to parse hashes".into())))?;
@@ -82,7 +82,7 @@ pub fn accounts_receivable(
     for account in accounts {
         let mut hashes = vec![];
 
-        let account_hashes = map_keys_from_json(raw_json["blocks"][&account.to_string()].clone());
+        let account_hashes = map_keys_from_json(&raw_json["blocks"][&account.to_string()]);
         if account_hashes.is_err() {
             continue;
         }
@@ -107,21 +107,20 @@ pub fn accounts_representatives(
 ) -> Result<Vec<Option<Account>>, RpcError> {
     let mut representatives = vec![];
     for account in accounts {
-        let representative = raw_json["representatives"][account.to_string()].clone();
+        let representative = &raw_json["representatives"][account.to_string()];
         if representative.is_null() {
             representatives.push(None);
             continue;
         }
-        representatives.push(Some(Account::try_from(trim_json(
-            representative.to_string(),
-        ))?));
+        let representative: Account = trim_json(&representative.to_string()).parse()?;
+        representatives.push(Some(representative));
     }
     Ok(representatives)
 }
 
 /// Legacy blocks will return `None`
 pub fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> {
-    if trim_json(raw_json["contents"]["type"].to_string()) != "state" {
+    if trim_json(&raw_json["contents"]["type"].to_string()) != "state" {
         return Ok(None);
     }
 
@@ -139,13 +138,13 @@ pub fn blocks_info(
 ) -> Result<Vec<Option<Block>>, RpcError> {
     let mut blocks = vec![];
     for hash in hashes {
-        let block = raw_json["blocks"][to_uppercase_hex(hash)].clone();
+        let block = &raw_json["blocks"][to_uppercase_hex(hash)];
         if block.is_null() {
             blocks.push(None);
             continue;
         }
 
-        if trim_json(block["contents"]["type"].to_string()) != "state" {
+        if trim_json(&block["contents"]["type"].to_string()) != "state" {
             blocks.push(None)
         }
 
@@ -161,7 +160,7 @@ pub fn blocks_info(
 }
 
 pub fn process(raw_json: JsonValue, hash: [u8; 32]) -> Result<[u8; 32], RpcError> {
-    let rpc_hash = hex::decode(trim_json(raw_json["hash"].to_string()))?;
+    let rpc_hash = hex::decode(trim_json(&raw_json["hash"].to_string()))?;
     let rpc_hash: [u8; 32] = rpc_hash
         .try_into()
         .or(Err(RpcError::ParseError("failed to process block".into())))?;
@@ -177,7 +176,7 @@ pub fn work_generate(
     work_hash: [u8; 32],
     custom_difficulty: Option<[u8; 8]>,
 ) -> Result<[u8; 8], RpcError> {
-    let work = hex::decode(trim_json(raw_json["work"].to_string()))?;
+    let work = hex::decode(trim_json(&raw_json["work"].to_string()))?;
     let work: [u8; 8] = work
         .try_into()
         .or(Err(RpcError::ParseError("failed to generate work".into())))?;
@@ -185,7 +184,7 @@ pub fn work_generate(
     let difficulty: [u8; 8] = if let Some(difficulty) = custom_difficulty {
         difficulty
     } else {
-        hex::decode(trim_json(raw_json["difficulty"].to_string()))?
+        hex::decode(trim_json(&raw_json["difficulty"].to_string()))?
             .try_into()
             .or(Err(RpcError::ParseError("failed to verify work".into())))?
     };

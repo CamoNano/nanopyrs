@@ -65,13 +65,13 @@ impl DebugRpc {
     }
 
     /// Get the url of this RPC
-    pub fn get_url(&self) -> String {
-        self.url.clone()
+    pub fn get_url(&self) -> &str {
+        &self.url
     }
 
     /// Get the proxy of this RPC, if set
-    pub fn get_proxy(&self) -> Option<String> {
-        self.proxy.clone()
+    pub fn get_proxy(&self) -> Option<&str> {
+        self.proxy.as_deref()
     }
 
     /// Same as `command`, but *everything* must be set manually
@@ -96,7 +96,7 @@ impl DebugRpc {
         };
 
         Response {
-            raw_request: Some(json.clone()),
+            raw_request: Some(json),
             raw_response,
             result,
         }

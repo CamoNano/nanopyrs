@@ -25,7 +25,7 @@ impl Signature {
 
     /// Check if the account's signature for the `message` is valid
     pub fn is_valid(&self, message: &[u8], account: &Account) -> bool {
-        account.is_valid_signature(message, *self)
+        account.is_valid_signature(message, self)
     }
 }
 
@@ -64,7 +64,7 @@ mod tests {
         let key = get_key([0; 32], 0);
         let account = key.to_account();
         let signature = key.sign_message(b"test");
-        assert!(account.is_valid_signature(b"test", signature))
+        assert!(account.is_valid_signature(b"test", &signature))
     }
 
     #[test]
@@ -72,7 +72,7 @@ mod tests {
         let key = get_key([0; 32], 0);
         let account = get_key([0; 32], 1).to_account();
         let signature = key.sign_message(b"test");
-        assert!(!account.is_valid_signature(b"test", signature))
+        assert!(!account.is_valid_signature(b"test", &signature))
     }
 
     #[test]
@@ -80,7 +80,7 @@ mod tests {
         let key = get_key([0; 32], 0);
         let account = key.to_account();
         let signature = key.sign_message(b"test 1");
-        assert!(!account.is_valid_signature(b"test 2", signature))
+        assert!(!account.is_valid_signature(b"test 2", &signature))
     }
 
     #[test]

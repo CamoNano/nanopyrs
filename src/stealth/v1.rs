@@ -235,7 +235,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
     }
 }
 
-#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct StealthAccountV1 {
     account: String,
     versions: StealthAccountVersions,

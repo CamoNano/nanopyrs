@@ -2,7 +2,7 @@ use super::constants::{epoch_signers::*, get_genesis_account};
 use super::nanopy::{hash_block, sign_message};
 use super::{Account, Key, NanoError, Signature};
 use std::fmt::Display;
-use zeroize::Zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub use super::nanopy::{check_work, get_local_work};
 
@@ -11,7 +11,7 @@ pub use super::nanopy::{check_work, get_local_work};
 /// Technically, the `type` field on a Nano block is either `state`, or one of the legacy variants;
 /// The sub-type of a `state` block is contained in another field, `subtype`.
 /// However, for simplicity, this library assumes that all blocks are of type `state`, unless specified as `legacy`.
-#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum BlockType {
     /// A `state` block, with `subtype` set to `change`
     Change,
@@ -59,7 +59,7 @@ impl Display for BlockType {
 }
 
 /// A Nano block. See the official [Nano documentation](https://docs.nano.org/protocol-design/blocks/) for details.
-#[derive(Debug, Clone, Zeroize, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Block {
     pub block_type: BlockType,
     pub account: Account,
@@ -126,7 +126,7 @@ impl Block {
             // "uhhh let's try genesis I guess"
             get_genesis_account()
         }
-        .is_valid_signature(&self.hash(), self.signature)
+        .is_valid_signature(&self.hash(), &self.signature)
     }
 
     /// Get work using the local CPU (likely very slow)

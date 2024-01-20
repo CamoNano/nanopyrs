@@ -139,7 +139,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account()
-            .is_valid_signature(message, signature)
+            .is_valid_signature(message, &signature)
     }
 
     fn get_versions(&self) -> StealthAccountVersions;
@@ -200,7 +200,7 @@ impl StealthViewKeys {
     /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account()
-            .is_valid_signature(message, signature)
+            .is_valid_signature(message, &signature)
     }
 
     /// Get the versions which this `stealth_` account supports
@@ -275,7 +275,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
     fn notification_account(&self) -> Account;
     fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account()
-            .is_valid_signature(message, signature)
+            .is_valid_signature(message, &signature)
     }
 
     fn get_versions(&self) -> StealthAccountVersions;
@@ -313,7 +313,7 @@ impl StealthAccount {
     /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
         self.notification_account()
-            .is_valid_signature(message, signature)
+            .is_valid_signature(message, &signature)
     }
 
     /// Get the versions which this `stealth_` account supports

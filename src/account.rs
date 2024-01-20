@@ -112,7 +112,7 @@ impl Account {
     }
 
     /// Check the validity of a signature made by this account's private key
-    pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
+    pub fn is_valid_signature(&self, message: &[u8], signature: &Signature) -> bool {
         is_valid_signature(message, signature, self)
     }
 }

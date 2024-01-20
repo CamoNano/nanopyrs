@@ -129,7 +129,7 @@ pub fn sign_message(message: &[u8], private_key: &Key) -> Signature {
 }
 
 /// Check if the account's `signature` for the `message` is valid
-pub fn is_valid_signature(message: &[u8], signature: Signature, public_key: &Account) -> bool {
+pub fn is_valid_signature(message: &[u8], signature: &Signature, public_key: &Account) -> bool {
     let r_bytes: [u8; 32] = signature.r.compress().to_bytes();
     let message = scalar!(blake2b512(
         &[

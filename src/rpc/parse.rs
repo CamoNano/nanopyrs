@@ -148,7 +148,7 @@ pub fn blocks_info(
             blocks.push(None)
         }
 
-        let block = block_from_info_json(&block)?;
+        let block = block_from_info_json(block)?;
         if !block.has_valid_signature() {
             return Err(RpcError::InvalidData);
         }

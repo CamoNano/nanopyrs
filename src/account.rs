@@ -19,7 +19,7 @@ pub use super::error::NanoError;
 use serde_json::Value as JsonValue;
 
 /// The private key of a `nano_` account
-#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Key {
     private: Scalar,
 }
@@ -146,7 +146,7 @@ impl From<&EdwardsPoint> for Account {
 impl TryFrom<&String> for Account {
     type Error = NanoError;
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Account::try_from(&value as &str)
+        Account::try_from(value as &str)
     }
 }
 impl TryFrom<&str> for Account {

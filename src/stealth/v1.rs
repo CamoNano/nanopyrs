@@ -92,7 +92,7 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, Nan
     })
 }
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct StealthKeysV1 {
     versions: StealthAccountVersions,
     private_spend: Scalar,
@@ -152,7 +152,7 @@ impl StealthKeysTrait for StealthKeysV1 {
     }
 }
 
-#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct StealthViewKeysV1 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,

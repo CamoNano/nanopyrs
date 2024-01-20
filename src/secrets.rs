@@ -142,7 +142,7 @@ impl From<RawScalar> for Scalar {
 }
 impl From<Scalar> for RawScalar {
     fn from(value: Scalar) -> Self {
-        value.as_ref().clone()
+        *value.as_ref()
     }
 }
 impl AsRef<RawScalar> for Scalar {

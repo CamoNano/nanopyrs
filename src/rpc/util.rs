@@ -4,7 +4,7 @@ use crate::{Account, Block, BlockType};
 pub use serde_json::{Map, Value as JsonValue};
 
 pub fn trim_json(value: &str) -> &str {
-    value.trim_matches('\"').into()
+    value.trim_matches('\"')
 }
 
 pub fn to_uppercase_hex(bytes: &[u8]) -> String {
@@ -13,10 +13,7 @@ pub fn to_uppercase_hex(bytes: &[u8]) -> String {
 
 /// Get the keys in a Json map.
 pub fn map_keys_from_json(value: &JsonValue) -> Result<Vec<&String>, RpcError> {
-    Ok(RpcError::from_option(value.as_object())?
-        .keys()
-        .collect()
-    )
+    Ok(RpcError::from_option(value.as_object())?.keys().collect())
 }
 
 pub fn u128_from_json(value: &JsonValue) -> Result<u128, RpcError> {
@@ -54,7 +51,7 @@ pub(crate) fn block_from_history_json(block: &JsonValue) -> Result<Block, RpcErr
     let block_type = trim_json(&block_type);
     let block_type = if block_type == "state" {
         // state blocks
-        BlockType::from_subtype_string(&trim_json(&block["subtype"].to_string()))
+        BlockType::from_subtype_string(trim_json(&block["subtype"].to_string()))
     } else {
         // legacy blocks (shouldn't be needed)
         Some(BlockType::Legacy(block_type.to_string()))
@@ -70,13 +67,13 @@ pub(crate) fn block_from_info_json(block: &JsonValue) -> Result<Block, RpcError>
     let block_type = trim_json(&block_type);
     let block_type = if block_type == "state" {
         // state blocks
-        BlockType::from_subtype_string(&trim_json(&block["subtype"].to_string()))
+        BlockType::from_subtype_string(trim_json(&block["subtype"].to_string()))
     } else {
         // legacy blocks (shouldn't be needed)
         Some(BlockType::Legacy(block_type.to_string()))
     };
 
-    block_from_json(&contents, RpcError::from_option(block_type)?)
+    block_from_json(contents, RpcError::from_option(block_type)?)
 }
 
 /// **Does not handle "subtype" field**

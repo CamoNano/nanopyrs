@@ -65,7 +65,7 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 
 /// The private keys of a `stealth_` account
 #[repr(u32)]
-#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthKeys {
     V1(Box<StealthKeysV1>) = 1,
 }
@@ -153,7 +153,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 
 /// The private view keys of a `stealth_` account
 #[repr(u32)]
-#[derive(Debug, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthViewKeys {
     V1(Box<StealthViewKeysV1>) = 1,
 }
@@ -292,7 +292,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
 
 /// A `stealth_` account
 #[repr(u32)]
-#[derive(Debug, Zeroize, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub enum StealthAccount {
     V1(Box<StealthAccountV1>) = 1,
 }
@@ -439,9 +439,7 @@ macro_rules! stealth_address_tests {
                 let recipient_view_keys = recipient_keys.to_view_keys();
                 let recipient_account = recipient_keys.to_stealth_account();
 
-                let recipient_derived = recipient_keys
-                    .derive_key(&sender_account, 0)
-                    .to_account();
+                let recipient_derived = recipient_keys.derive_key(&sender_account, 0).to_account();
                 let recipient_vk_derived = recipient_view_keys.derive_account(&sender_account, 0);
                 let sender_derived = recipient_account.derive_account(&sender_keys, 0);
 

@@ -201,8 +201,7 @@ impl Display for Account {
 }
 impl Hash for Account {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.account.hash(state);
-        self.compressed.hash(state);
+        self.account.hash(state)
     }
 }
 

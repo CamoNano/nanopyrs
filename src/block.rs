@@ -21,11 +21,28 @@ pub enum BlockType {
     Receive,
     /// A `state` block, with `subtype` set to `epoch`
     Epoch,
-    /// A `legacy` block
+    /// A `legacy` block of the specified variant
     Legacy(String),
 }
 impl BlockType {
-    /// Returns `true` if the block's type is `state`, `false` otherwise
+    /// Returns `true` if the block's type is `BlockType::Change`, `false` otherwise
+    pub fn is_change(&self) -> bool {
+        self == &BlockType::Change
+    }
+    /// Returns `true` if the block's type is `BlockType::Send`, `false` otherwise
+    pub fn is_send(&self) -> bool {
+        self == &BlockType::Send
+    }
+    /// Returns `true` if the block's type is `BlockType::Receive`, `false` otherwise
+    pub fn is_receive(&self) -> bool {
+        self == &BlockType::Receive
+    }
+    /// Returns `true` if the block's type is `BlockType::Epoch`, `false` otherwise
+    pub fn is_epoch(&self) -> bool {
+        self == &BlockType::Epoch
+    }
+
+    /// Returns `true` if the block's type is one of the `state` variants, `false` otherwise
     pub fn is_state(&self) -> bool {
         !self.is_legacy()
     }

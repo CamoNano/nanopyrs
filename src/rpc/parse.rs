@@ -76,7 +76,6 @@ pub fn accounts_frontiers(
     Ok(frontiers)
 }
 
-#[allow(clippy::type_complexity)]
 pub fn accounts_receivable(
     raw_json: JsonValue,
     accounts: &[Account],

@@ -1,5 +1,6 @@
-use super::{util::*, RpcError};
+use super::{util::*, Receivable, RpcError};
 use crate::{block::check_work, Account, Block};
+use hex::FromHexError;
 
 pub fn account_balance(raw_json: JsonValue) -> Result<u128, RpcError> {
     let balances = u128_from_json(&raw_json["balance"])?;
@@ -9,7 +10,9 @@ pub fn account_balance(raw_json: JsonValue) -> Result<u128, RpcError> {
 /// Will stop at first legacy block
 pub fn account_history(raw_json: JsonValue, account: &Account) -> Result<Vec<Block>, RpcError> {
     let json_blocks = &raw_json["history"];
-    let json_blocks = RpcError::from_option(json_blocks.as_array())?;
+    let json_blocks = json_blocks
+        .as_array()
+        .ok_or(RpcError::InvalidJsonDataType)?;
 
     let mut blocks: Vec<Block> = vec![];
     for block in json_blocks {
@@ -37,7 +40,7 @@ pub fn account_history(raw_json: JsonValue, account: &Account) -> Result<Vec<Blo
 }
 
 pub fn account_representative(history: Vec<Block>) -> Result<Account, RpcError> {
-    let last_block = RpcError::from_option(history.first())?;
+    let last_block = history.first().ok_or(RpcError::InvalidJsonDataType)?;
     Ok(last_block.representative.clone())
 }
 
@@ -66,7 +69,7 @@ pub fn accounts_frontiers(
         let frontier = hex::decode(trim_json(&frontier.to_string()))?;
         let frontier = frontier
             .try_into()
-            .or(Err(RpcError::ParseError("failed to parse hashes".into())))?;
+            .map_err(|_| FromHexError::InvalidStringLength)?;
 
         frontiers.push(Some(frontier))
     }
@@ -77,10 +80,10 @@ pub fn accounts_frontiers(
 pub fn accounts_receivable(
     raw_json: JsonValue,
     accounts: &[Account],
-) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
-    let mut all_hashes = vec![];
+) -> Result<Vec<Vec<Receivable>>, RpcError> {
+    let mut all_receivable = vec![];
     for account in accounts {
-        let mut hashes = vec![];
+        let mut receivable = vec![];
 
         let account_hashes = map_keys_from_json(&raw_json["blocks"][&account.to_string()]);
         if account_hashes.is_err() {
@@ -92,13 +95,13 @@ pub fn accounts_receivable(
             let bytes = hex::decode(trim_json(hash))?;
             let bytes = bytes
                 .try_into()
-                .or(Err(RpcError::ParseError("failed to parse hashes".into())))?;
+                .map_err(|_| FromHexError::InvalidStringLength)?;
 
-            hashes.push((bytes, amount));
+            receivable.push((account.clone(), bytes, amount).into());
         }
-        all_hashes.push(hashes);
+        all_receivable.push(receivable);
     }
-    Ok(all_hashes)
+    Ok(all_receivable)
 }
 
 pub fn accounts_representatives(
@@ -112,7 +115,9 @@ pub fn accounts_representatives(
             representatives.push(None);
             continue;
         }
-        let representative: Account = trim_json(&representative.to_string()).parse()?;
+        let representative: Account = trim_json(&representative.to_string())
+            .parse()
+            .map_err(|_| RpcError::InvalidAccount)?;
         representatives.push(Some(representative));
     }
     Ok(representatives)
@@ -163,7 +168,7 @@ pub fn process(raw_json: JsonValue, hash: [u8; 32]) -> Result<[u8; 32], RpcError
     let rpc_hash = hex::decode(trim_json(&raw_json["hash"].to_string()))?;
     let rpc_hash: [u8; 32] = rpc_hash
         .try_into()
-        .or(Err(RpcError::ParseError("failed to process block".into())))?;
+        .map_err(|_| FromHexError::InvalidStringLength)?;
 
     if rpc_hash != hash {
         return Err(RpcError::InvalidData);
@@ -179,14 +184,14 @@ pub fn work_generate(
     let work = hex::decode(trim_json(&raw_json["work"].to_string()))?;
     let work: [u8; 8] = work
         .try_into()
-        .or(Err(RpcError::ParseError("failed to generate work".into())))?;
+        .map_err(|_| FromHexError::InvalidStringLength)?;
 
     let difficulty: [u8; 8] = if let Some(difficulty) = custom_difficulty {
         difficulty
     } else {
         hex::decode(trim_json(&raw_json["difficulty"].to_string()))?
             .try_into()
-            .or(Err(RpcError::ParseError("failed to verify work".into())))?
+            .map_err(|_| FromHexError::InvalidStringLength)?
     };
 
     match check_work(work_hash, difficulty, work) {
@@ -451,12 +456,33 @@ mod tests {
                 .unwrap()
                 .try_into()
                 .unwrap();
-        assert!(receivable[0][0].0 == hash_1);
-        assert!(receivable[0][0].1 == 6000000000000000000000000000000);
-        assert!(receivable[0][1].0 == hash_2);
-        assert!(receivable[0][1].1 == 9000000000000000000000000000005);
-        assert!(receivable[1][0].0 == hash_3);
-        assert!(receivable[1][0].1 == 106370018000000000000000000000000);
+
+        assert!(
+            receivable[0][0].recipient
+                == "nano_1111111111111111111111111111111111111111111111111117353trpda"
+                    .parse()
+                    .unwrap()
+        );
+        assert!(receivable[0][0].block_hash == hash_1);
+        assert!(receivable[0][0].amount == 6000000000000000000000000000000);
+
+        assert!(
+            receivable[0][1].recipient
+                == "nano_1111111111111111111111111111111111111111111111111117353trpda"
+                    .parse()
+                    .unwrap()
+        );
+        assert!(receivable[0][1].block_hash == hash_2);
+        assert!(receivable[0][1].amount == 9000000000000000000000000000005);
+
+        assert!(
+            receivable[1][0].recipient
+                == "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"
+                    .parse()
+                    .unwrap()
+        );
+        assert!(receivable[1][0].block_hash == hash_3);
+        assert!(receivable[1][0].amount == 106370018000000000000000000000000);
     }
 
     #[test]

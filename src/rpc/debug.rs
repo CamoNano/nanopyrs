@@ -1,4 +1,4 @@
-use super::{encode, error::RpcError, parse};
+use super::{encode, error::RpcError, parse, Receivable};
 use crate::{Account, Block};
 
 use json::{Map, Value as JsonValue};
@@ -184,7 +184,7 @@ impl DebugRpc {
         accounts: &[Account],
         count: usize,
         threshold: u128,
-    ) -> Response<Vec<Vec<([u8; 32], u128)>>> {
+    ) -> Response<Vec<Vec<Receivable>>> {
         if accounts.is_empty() {
             return Response::no_request(Ok(vec![]));
         }

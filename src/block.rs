@@ -93,6 +93,7 @@ impl Block {
         self.block_type == BlockType::Epoch
             && self.balance == previous.balance
             && self.representative == previous.representative
+            && self.previous == previous.hash()
     }
 
     pub fn hash(&self) -> [u8; 32] {

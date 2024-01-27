@@ -1,5 +1,6 @@
 use super::RpcError;
 use crate::{Account, Block, BlockType};
+use hex::FromHexError;
 
 pub use serde_json::{Map, Value as JsonValue};
 
@@ -13,21 +14,27 @@ pub fn to_uppercase_hex(bytes: &[u8]) -> String {
 
 /// Get the keys in a Json map.
 pub fn map_keys_from_json(value: &JsonValue) -> Result<Vec<&String>, RpcError> {
-    Ok(RpcError::from_option(value.as_object())?.keys().collect())
+    Ok(value
+        .as_object()
+        .ok_or(RpcError::InvalidJsonDataType)?
+        .keys()
+        .collect())
 }
 
 pub fn u128_from_json(value: &JsonValue) -> Result<u128, RpcError> {
-    Ok(trim_json(&value.to_string()).parse::<u128>()?)
+    trim_json(&value.to_string())
+        .parse::<u128>()
+        .map_err(|_| RpcError::InvalidU128)
 }
 
 pub fn bytes_from_json<const T: usize>(value: &JsonValue) -> Result<[u8; T], RpcError> {
     hex::decode(trim_json(&value.to_string()))?
         .try_into()
-        .or(Err(RpcError::ParseError("failed to parse hex".into())))
+        .or(Err(FromHexError::InvalidStringLength.into()))
 }
 
 pub fn account_from_json(value: &JsonValue) -> Result<Account, RpcError> {
-    Ok(Account::try_from(trim_json(&value.to_string()))?)
+    Account::try_from(trim_json(&value.to_string())).map_err(|_| RpcError::InvalidAccount)
 }
 
 pub fn block_from_json(block: &JsonValue, block_type: BlockType) -> Result<Block, RpcError> {
@@ -57,7 +64,7 @@ pub(crate) fn block_from_history_json(block: &JsonValue) -> Result<Block, RpcErr
         Some(BlockType::Legacy(block_type.to_string()))
     };
 
-    block_from_json(block, RpcError::from_option(block_type)?)
+    block_from_json(block, block_type.ok_or(RpcError::InvalidJsonDataType)?)
 }
 
 /// Specific to `block_info` and `blocks_info`
@@ -73,7 +80,7 @@ pub(crate) fn block_from_info_json(block: &JsonValue) -> Result<Block, RpcError>
         Some(BlockType::Legacy(block_type.to_string()))
     };
 
-    block_from_json(contents, RpcError::from_option(block_type)?)
+    block_from_json(contents, block_type.ok_or(RpcError::InvalidJsonDataType)?)
 }
 
 /// **Does not handle "subtype" field**

@@ -9,8 +9,29 @@ use crate::{Account, Block};
 use debug::DebugRpc;
 use json::{Map, Value as JsonValue};
 use serde_json as json;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub use error::RpcError;
+
+/// A receivable (pending) transaction.
+/// * `recipient`: The recipient account of this transaction
+/// * `block_hash`: The hash of the send block on the sender's account
+/// * `amount`: The amount being transferred
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+pub struct Receivable {
+    pub recipient: Account,
+    pub block_hash: [u8; 32],
+    pub amount: u128,
+}
+impl From<(Account, [u8; 32], u128)> for Receivable {
+    fn from(value: (Account, [u8; 32], u128)) -> Self {
+        Receivable {
+            recipient: value.0,
+            block_hash: value.1,
+            amount: value.2,
+        }
+    }
+}
 
 /// See the official [Nano RPC documentation](https://docs.nano.org/commands/rpc-protocol/) for details.
 #[derive(Debug, Clone)]
@@ -24,7 +45,7 @@ impl Rpc {
         Ok(Rpc(DebugRpc::new_with_proxy(url, proxy)?))
     }
 
-    /// Get the url of this RPC
+    /// Get the URL of this RPC
     pub fn get_url(&self) -> &str {
         self.0.get_url()
     }
@@ -87,7 +108,7 @@ impl Rpc {
         accounts: &[Account],
         count: usize,
         threshold: u128,
-    ) -> Result<Vec<Vec<([u8; 32], u128)>>, RpcError> {
+    ) -> Result<Vec<Vec<Receivable>>, RpcError> {
         self.0
             .accounts_receivable(accounts, count, threshold)
             .await

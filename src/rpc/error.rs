@@ -1,46 +1,32 @@
-use crate::NanoError;
 use hex::FromHexError;
 use json::Error as JsonError;
 use reqwest::Error as ReqwestError;
 use serde_json as json;
-use std::convert::From;
-use std::num::ParseIntError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RpcError {
     #[error(transparent)]
     ReqwestError(#[from] ReqwestError),
+    /// Error while parsing json
     #[error(transparent)]
     JsonError(#[from] JsonError),
-    /// Error while parsing data
-    #[error("parsing error: {0}")]
-    ParseError(String),
-    /// The data is invalid
-    #[error("data is invalid")]
+    /// Error while parsing json: invalid hex value
+    #[error(transparent)]
+    FromHexError(#[from] FromHexError),
+    /// Error while parsing json: invalid account
+    #[error("error while parsing json: invalid account")]
+    InvalidAccount,
+    /// Error while parsing json: invalid u128
+    #[error("error while parsing json: invalid u128")]
+    InvalidU128,
+    /// error while parsing json: unexpected data type
+    #[error("error while parsing json: unexpected data type")]
+    InvalidJsonDataType,
+    /// The returned data is invalid
+    #[error("the returned data is invalid")]
     InvalidData,
     /// Cannot publish block of type `legacy`
     #[error("cannot publish block of type 'legacy'")]
     LegacyBlockType,
-}
-impl RpcError {
-    /// Maps `Some(T)` to `Ok(T)`, and `None` to `RpcError::ParseError`
-    pub fn from_option<T>(option: Option<T>) -> Result<T, RpcError> {
-        option.ok_or(RpcError::ParseError("Option<T> returned empty".into()))
-    }
-}
-impl From<ParseIntError> for RpcError {
-    fn from(value: ParseIntError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
-}
-impl From<NanoError> for RpcError {
-    fn from(value: NanoError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
-}
-impl From<FromHexError> for RpcError {
-    fn from(value: FromHexError) -> Self {
-        RpcError::ParseError(value.to_string())
-    }
 }

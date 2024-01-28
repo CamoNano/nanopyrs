@@ -178,7 +178,7 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// For each account, returns the receivable transactions as `Vec<(block_hash, amount)>`
+    /// For each account, returns the receivable transactions as `Vec<Receivable>`
     pub async fn accounts_receivable(
         &self,
         accounts: &[Account],

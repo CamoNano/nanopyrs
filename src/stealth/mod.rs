@@ -20,6 +20,12 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub use version::StealthAccountVersions;
 
+/// Based on the hash of the notification block,
+/// return the "standard" index to derive the one-time account from using the shared seed.
+pub fn get_standard_index(notification_block: &Block) -> u32 {
+    u32::from_be_bytes(notification_block.hash()[..4].try_into().unwrap())
+}
+
 macro_rules! unwrap_enum {
     (StealthKeys, $instance:ident . $func:ident($($arg:expr),*) ) => {
         match $instance {
@@ -61,6 +67,7 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
         self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
     }
+    fn derive_key_from_block(&self, block: &Block) -> Key;
 }
 
 /// The private keys of a `stealth_` account
@@ -123,6 +130,13 @@ impl StealthKeys {
     pub fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
         self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
     }
+
+    /// Derive a one-time key from the notification block.
+    ///
+    /// Similar to `derive_key()`, except a psuedo-random index is automatically calculated.
+    pub fn derive_key_from_block(&self, block: &Block) -> Key {
+        unwrap_enum!(StealthKeys, self.derive_key_from_block(block))
+    }
 }
 
 pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
@@ -149,6 +163,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
     fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
     }
+    fn derive_account_from_block(&self, block: &Block) -> Account;
 }
 
 /// The private view keys of a `stealth_` account
@@ -220,6 +235,13 @@ impl StealthViewKeys {
     pub fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
         self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
     }
+
+    /// Derive a one-time account from the notification block.
+    ///
+    /// Similar to `derive_account()`, except a psuedo-random index is automatically calculated.
+    pub fn derive_account_from_block(&self, block: &Block) -> Account {
+        unwrap_enum!(StealthViewKeys, self.derive_account_from_block(block))
+    }
 }
 
 auto_from_impl!(From: StealthViewKeys => SecretBytes<65>);
@@ -288,6 +310,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
     fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
         self.derive_account_from_secret(&self.sender_ecdh(sender_key), i)
     }
+    fn derive_account_from_block(&self, block: &Block, sender_key: &Key) -> Account;
 }
 
 /// A `stealth_` account
@@ -336,6 +359,13 @@ impl StealthAccount {
 
     pub fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
         self.derive_account_from_secret(&self.sender_ecdh(sender_key), i)
+    }
+
+    /// Derive a one-time account from the notification block.
+    ///
+    /// Similar to `derive_account()`, except a psuedo-random index is automatically calculated.
+    pub fn derive_account_from_block(&self, block: &Block, sender_key: &Key) -> Account {
+        unwrap_enum!(StealthAccount, self.derive_account_from_block(block, sender_key))
     }
 }
 impl FromStr for StealthAccount {

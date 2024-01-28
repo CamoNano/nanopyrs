@@ -14,13 +14,13 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 pub use error::RpcError;
 
 /// A receivable (pending) transaction.
-/// * `recipient`: The recipient account of this transaction
-/// * `block_hash`: The hash of the send block on the sender's account
-/// * `amount`: The amount being transferred
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 pub struct Receivable {
+    /// The recipient account of this transaction
     pub recipient: Account,
+    /// The hash of the send block on the sender's account
     pub block_hash: [u8; 32],
+    /// The amount being transferred
     pub amount: u128,
 }
 impl From<(Account, [u8; 32], u128)> for Receivable {
@@ -102,7 +102,7 @@ impl Rpc {
         self.0.accounts_frontiers(accounts).await.result
     }
 
-    /// For each account, returns the receivable transactions as `Vec<(block_hash, amount)>`
+    /// For each account, returns the receivable transactions as `Vec<Receivable>`
     pub async fn accounts_receivable(
         &self,
         accounts: &[Account],

@@ -1,6 +1,8 @@
 use super::{
-    stealth_address_tests, AutoTestUtils, StealthAccountTrait, StealthAccountVersions,
+    stealth_address_tests, AutoTestUtils,
+    StealthAccountTrait, StealthAccountVersions,
     StealthKeysTrait, StealthViewKeysTrait,
+    get_standard_index
 };
 use crate::{
     auto_from_impl, base32,
@@ -10,7 +12,7 @@ use crate::{
         hazmat::{get_account_scalar, get_account_seed},
     },
     secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Key, NanoError,
-    Scalar, SecretBytes,
+    Scalar, SecretBytes, Block
 };
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G,
@@ -150,6 +152,10 @@ impl StealthKeysTrait for StealthKeysV1 {
     fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key {
         Key::from(&self.private_spend + get_account_scalar(secret, i))
     }
+
+    fn derive_key_from_block(&self, block: &Block) -> Key {
+        self.derive_key(&block.account, get_standard_index(block))
+    }
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
@@ -196,6 +202,10 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
 
     fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
         Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
+    }
+
+    fn derive_account_from_block(&self, block: &Block) -> Account {
+        self.derive_account(&block.account, get_standard_index(block))
     }
 }
 
@@ -269,6 +279,10 @@ impl StealthAccountTrait for StealthAccountV1 {
 
     fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
         Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
+    }
+
+    fn derive_account_from_block(&self, block: &Block, key: &Key) -> Account {
+        self.derive_account(key, get_standard_index(block))
     }
 }
 impl Display for StealthAccountV1 {

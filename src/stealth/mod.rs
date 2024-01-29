@@ -47,7 +47,7 @@ macro_rules! unwrap_enum {
     };
 }
 
-pub(crate) trait StealthKeysTrait: Sized + Zeroize + Serialize + PartialEq + Eq {
+pub(crate) trait StealthKeysTrait: Sized + Zeroize + PartialEq + Eq {
     type ViewKeysType: StealthViewKeysTrait;
     type AccountType: StealthAccountTrait;
 
@@ -143,7 +143,7 @@ impl StealthKeys {
     }
 }
 
-pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + Serialize + PartialEq + Eq {
+pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + PartialEq + Eq {
     type AccountType: StealthAccountTrait;
 
     fn from_seed(
@@ -288,9 +288,7 @@ impl From<&StealthKeys> for StealthViewKeys {
     }
 }
 
-pub(crate) trait StealthAccountTrait:
-    Sized + Zeroize + Serialize + Display + PartialEq + Eq
-{
+pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq {
     type KeysType: StealthKeysTrait;
 
     fn from_keys(keys: Self::KeysType) -> Self;

@@ -23,6 +23,8 @@ jobs:
       run: cargo build --verbose --no-default-features --features rpc
     - name: Build (features = stealth)
       run: cargo build --verbose --no-default-features --features stealth
+    - name: Build (features = serde)
+      run: cargo build --verbose --no-default-features --features serde
 
     - name: Run Tests (features = all)
       run: cargo test --verbose --all-features

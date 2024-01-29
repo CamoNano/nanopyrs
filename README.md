@@ -16,13 +16,17 @@ RPC functionality is enabled by the `rpc` feature, which is **disabled by defaul
 
 Currently, only the following commands are officially supported: `account_balance`, `account_history`, `account_representative`, `accounts_balances`, `accounts_frontiers`, `accounts_receivable`, `accounts_representatives`, `block_info`, `blocks_info`, `process`, `work_generate`
 
-. . . but any other command can be implemented manually with the help of the `command` method of `nanopyrs::rpc::Rpc`, and various functions in `nanopyrs::rpc::util`.
+. . . but any other command can be implemented manually with the help of the `command()` method of `nanopyrs::rpc::Rpc`, and various functions in `nanopyrs::rpc::util`.
 
 ## Stealth Accounts
 
 Stealth account functionality is enabled by the `stealth` feature, which is **disabled by default**.
 
 Note that stealth accounts are a **custom, experimental, and non-standard feature** of this library, and are generally not supported by wallets or the wider Nano ecosystem.
+
+## Serde support
+
+[Serde](https://docs.rs/serde/latest/serde/) support is enabled by the `serde` feature, which is **disabled by default**.
 
 ## Shouldn't this be called 'nanors' since the 'py' in 'nanopy' means Python?
 
@@ -34,6 +38,6 @@ This crate is open source and licensed under the MIT license. See the `LICENSE` 
 
 ## Credits
 
-Heavily inspired by, and partially derived from, the [nanopy](https://github.com/npy0/nanopy) library, written by npy0.
+This library is heavily inspired by, and partially derived from, the [nanopy](https://github.com/npy0/nanopy) library, written by npy0.
 
 The Base32 code was copied from the [feeless](https://github.com/feeless/feeless) library, written by gak

@@ -21,6 +21,9 @@ use curve25519_dalek::{
 use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 fn ecdh(key_1: &Scalar, key_2: &EdwardsPoint) -> SecretBytes<32> {
     secret!((key_1 * key_2).compress().to_bytes())
 }
@@ -95,6 +98,7 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, Nan
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthKeysV1 {
     versions: StealthAccountVersions,
     private_spend: Scalar,
@@ -159,6 +163,7 @@ impl StealthKeysTrait for StealthKeysV1 {
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthViewKeysV1 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
@@ -246,6 +251,7 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthAccountV1 {
     account: String,
     versions: StealthAccountVersions,

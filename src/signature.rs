@@ -8,7 +8,11 @@ pub mod hazmat {
     pub use crate::nanopy::sign_message_with_r;
 }
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 #[derive(Debug, Clone, Copy, Zeroize, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signature {
     pub r: EdwardsPoint,
     pub s: RawScalar,

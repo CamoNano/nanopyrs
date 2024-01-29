@@ -1,6 +1,9 @@
 use crate::{auto_from_impl, constants::*};
 use zeroize::Zeroize;
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 /// Decode `StealthAccountVersions` from the compact `u8` representation.
 ///
 /// You propably want `versions!()` instead.
@@ -40,6 +43,7 @@ fn is_supported_version(version: u8) -> bool {
 
 /// Signals the version(s) which a `stealth_` account supports
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthAccountVersions {
     supported_versions: [bool; 8],
 }

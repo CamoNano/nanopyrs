@@ -18,6 +18,9 @@ use std::str::FromStr;
 use v1::{StealthAccountV1, StealthKeysV1, StealthViewKeysV1};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 pub use version::StealthAccountVersions;
 
 /// Based on the hash of the notification block,
@@ -44,7 +47,7 @@ macro_rules! unwrap_enum {
     };
 }
 
-pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
+pub(crate) trait StealthKeysTrait: Sized + Zeroize + Serialize + PartialEq + Eq {
     type ViewKeysType: StealthViewKeysTrait;
     type AccountType: StealthAccountTrait;
 
@@ -73,6 +76,7 @@ pub(crate) trait StealthKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 /// The private keys of a `stealth_` account
 #[repr(u32)]
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StealthKeys {
     V1(Box<StealthKeysV1>) = 1,
 }
@@ -139,7 +143,7 @@ impl StealthKeys {
     }
 }
 
-pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
+pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + Serialize + PartialEq + Eq {
     type AccountType: StealthAccountTrait;
 
     fn from_seed(
@@ -169,6 +173,7 @@ pub(crate) trait StealthViewKeysTrait: Sized + Zeroize + ZeroizeOnDrop {
 /// The private view keys of a `stealth_` account
 #[repr(u32)]
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StealthViewKeys {
     V1(Box<StealthViewKeysV1>) = 1,
 }
@@ -283,7 +288,7 @@ impl From<&StealthKeys> for StealthViewKeys {
     }
 }
 
-pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq {
+pub(crate) trait StealthAccountTrait: Sized + Zeroize + Serialize + Display + PartialEq + Eq {
     type KeysType: StealthKeysTrait;
 
     fn from_keys(keys: Self::KeysType) -> Self;
@@ -316,6 +321,7 @@ pub(crate) trait StealthAccountTrait: Sized + Zeroize + Display + PartialEq + Eq
 /// A `stealth_` account
 #[repr(u32)]
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StealthAccount {
     V1(Box<StealthAccountV1>) = 1,
 }

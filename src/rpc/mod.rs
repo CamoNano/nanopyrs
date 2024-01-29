@@ -11,10 +11,14 @@ use json::{Map, Value as JsonValue};
 use serde_json as json;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 pub use error::RpcError;
 
 /// A receivable (pending) transaction.
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Receivable {
     /// The recipient account of this transaction
     pub recipient: Account,

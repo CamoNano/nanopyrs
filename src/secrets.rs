@@ -8,6 +8,9 @@ use std::convert::From;
 use std::fmt::Debug;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 use super::error::NanoError;
 
 /// Create a `SecretBytes<T>`
@@ -70,6 +73,7 @@ impl<const T: usize> Debug for SecretBytes<T> {
 
 /// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Scalar {
     scalar: Box<RawScalar>,
 }

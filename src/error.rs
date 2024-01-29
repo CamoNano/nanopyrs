@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+
 pub enum NanoError {
     /// Invalid address length
     InvalidAddressLength,

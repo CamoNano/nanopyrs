@@ -4,6 +4,9 @@ use super::{Account, Key, NanoError, Signature};
 use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 pub use super::nanopy::{check_work, get_local_work};
 
 /// The type of a Nano block
@@ -12,6 +15,7 @@ pub use super::nanopy::{check_work, get_local_work};
 /// The sub-type of a `state` block is contained in another field, `subtype`.
 /// However, for simplicity, this library assumes that all blocks are of type `state`, unless specified as `legacy`.
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BlockType {
     /// A `state` block, with `subtype` set to `change`
     Change,
@@ -77,6 +81,7 @@ impl Display for BlockType {
 
 /// A Nano block. See the official [Nano documentation](https://docs.nano.org/protocol-design/blocks/) for details.
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Block {
     pub block_type: BlockType,
     pub account: Account,

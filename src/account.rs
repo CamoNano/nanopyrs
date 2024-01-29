@@ -13,6 +13,9 @@ use std::fmt::Display;
 use std::hash::Hash;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 pub use super::error::NanoError;
 
 #[cfg(feature = "rpc")]
@@ -20,6 +23,7 @@ use serde_json::Value as JsonValue;
 
 /// The private key of a `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Key {
     private: Scalar,
 }
@@ -73,6 +77,7 @@ impl_op_ex_commutative!(*|a: &Key, b: &EdwardsPoint| -> Account { Account::from(
 
 /// A `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Account {
     pub account: String,
     pub compressed: CompressedEdwardsY,

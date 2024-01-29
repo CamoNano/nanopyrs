@@ -1,8 +1,6 @@
 use super::{
-    stealth_address_tests, AutoTestUtils,
-    StealthAccountTrait, StealthAccountVersions,
-    StealthKeysTrait, StealthViewKeysTrait,
-    get_standard_index
+    get_standard_index, stealth_address_tests, AutoTestUtils, StealthAccountTrait,
+    StealthAccountVersions, StealthKeysTrait, StealthViewKeysTrait,
 };
 use crate::{
     auto_from_impl, base32,
@@ -11,8 +9,8 @@ use crate::{
         get_stealth_view_seed,
         hazmat::{get_account_scalar, get_account_seed},
     },
-    secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Key, NanoError,
-    Scalar, SecretBytes, Block
+    secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Block, Key,
+    NanoError, Scalar, SecretBytes,
 };
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G,
@@ -22,7 +20,7 @@ use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 fn ecdh(key_1: &Scalar, key_2: &EdwardsPoint) -> SecretBytes<32> {
     secret!((key_1 * key_2).compress().to_bytes())

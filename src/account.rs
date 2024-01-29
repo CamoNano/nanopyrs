@@ -14,7 +14,7 @@ use std::hash::Hash;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use super::error::NanoError;
 

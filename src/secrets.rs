@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::error::NanoError;
 

@@ -2,7 +2,7 @@ use crate::{auto_from_impl, constants::*};
 use zeroize::Zeroize;
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Decode `StealthAccountVersions` from the compact `u8` representation.
 ///

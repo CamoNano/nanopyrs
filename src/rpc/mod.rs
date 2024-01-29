@@ -12,7 +12,7 @@ use serde_json as json;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use error::RpcError;
 

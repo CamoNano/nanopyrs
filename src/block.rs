@@ -5,7 +5,7 @@ use std::fmt::Display;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use super::nanopy::{check_work, get_local_work};
 

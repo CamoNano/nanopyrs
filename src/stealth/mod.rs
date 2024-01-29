@@ -19,7 +19,7 @@ use v1::{StealthAccountV1, StealthKeysV1, StealthViewKeysV1};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub use version::StealthAccountVersions;
 
@@ -288,7 +288,9 @@ impl From<&StealthKeys> for StealthViewKeys {
     }
 }
 
-pub(crate) trait StealthAccountTrait: Sized + Zeroize + Serialize + Display + PartialEq + Eq {
+pub(crate) trait StealthAccountTrait:
+    Sized + Zeroize + Serialize + Display + PartialEq + Eq
+{
     type KeysType: StealthKeysTrait;
 
     fn from_keys(keys: Self::KeysType) -> Self;
@@ -371,7 +373,10 @@ impl StealthAccount {
     ///
     /// Similar to `derive_account()`, except a psuedo-random index is automatically calculated.
     pub fn derive_account_from_block(&self, block: &Block, sender_key: &Key) -> Account {
-        unwrap_enum!(StealthAccount, self.derive_account_from_block(block, sender_key))
+        unwrap_enum!(
+            StealthAccount,
+            self.derive_account_from_block(block, sender_key)
+        )
     }
 }
 impl FromStr for StealthAccount {

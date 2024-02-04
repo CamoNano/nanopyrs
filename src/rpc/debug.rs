@@ -128,8 +128,9 @@ impl DebugRpc {
         account: &Account,
         count: usize,
         head: Option<[u8; 32]>,
+        offset: Option<usize>,
     ) -> Response<Vec<Block>> {
-        let response = request!(self, encode::account_history(account, count, head));
+        let response = request!(self, encode::account_history(account, count, head, offset));
         let result = match response.result {
             Ok(json) => parse::account_history(json, account),
             Err(err) => Err(err),
@@ -139,7 +140,7 @@ impl DebugRpc {
 
     /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.
     pub async fn account_representative(&self, account: &Account) -> Response<Account> {
-        let response = self.account_history(account, 1, None).await;
+        let response = self.account_history(account, 1, None, None).await;
         let result = match response.result {
             Ok(history) => parse::account_representative(history),
             Err(err) => Err(err),

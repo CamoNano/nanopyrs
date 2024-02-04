@@ -84,8 +84,12 @@ impl Rpc {
         account: &Account,
         count: usize,
         head: Option<[u8; 32]>,
+        offset: Option<usize>,
     ) -> Result<Vec<Block>, RpcError> {
-        self.0.account_history(account, count, head).await.result
+        self.0
+            .account_history(account, count, head, offset)
+            .await
+            .result
     }
 
     /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.

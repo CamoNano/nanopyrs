@@ -10,7 +10,12 @@ pub fn account_balance(account: &Account) -> JsonValue {
     JsonValue::Object(arguments)
 }
 
-pub fn account_history(account: &Account, count: usize, head: Option<[u8; 32]>) -> JsonValue {
+pub fn account_history(
+    account: &Account,
+    count: usize,
+    head: Option<[u8; 32]>,
+    offset: Option<usize>,
+) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "account_history".into());
     arguments.insert("raw".into(), "true".into());
@@ -18,6 +23,9 @@ pub fn account_history(account: &Account, count: usize, head: Option<[u8; 32]>) 
     arguments.insert("count".into(), count.to_string().into());
     if let Some(head) = head {
         arguments.insert("head".into(), hex::encode(head).into());
+    }
+    if let Some(offset) = offset {
+        arguments.insert("offset".into(), offset.to_string().into());
     }
     JsonValue::Object(arguments)
 }
@@ -124,17 +132,18 @@ mod tests {
             .try_into()
             .unwrap();
 
-        let json = super::account_history(&account, 3, None);
+        let json = super::account_history(&account, 3, None, Some(8));
         assert!(
             json == json!({
                 "action": "account_history",
                 "account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
                 "count": "3",
+                "offset": "8",
                 "raw": "true"
             })
         );
 
-        let json = super::account_history(&account, 4, Some([255; 32]));
+        let json = super::account_history(&account, 4, Some([255; 32]), None);
         assert!(
             json == json!({
                 "action": "account_history",

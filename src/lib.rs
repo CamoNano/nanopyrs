@@ -1,4 +1,4 @@
-#![deny(unsafe_code)]
+#![warn(unused_crate_dependencies, unsafe_code)]
 
 mod account;
 mod error;

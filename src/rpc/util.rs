@@ -2,6 +2,12 @@ use super::RpcError;
 use crate::{Account, Block, BlockType};
 use hex::FromHexError;
 
+pub mod parse {
+    pub use super::super::parse::*;
+}
+pub mod encode {
+    pub use super::super::encode::*;
+}
 pub use serde_json::{Map, Value as JsonValue};
 
 pub fn trim_json(value: &str) -> &str {

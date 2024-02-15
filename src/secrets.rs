@@ -55,6 +55,11 @@ impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
         secret
     }
 }
+impl<const T: usize> From<SecretBytes<T>> for [u8; T] {
+    fn from(value: SecretBytes<T>) -> Self {
+        *value.bytes
+    }
+}
 impl<const T: usize> AsMut<[u8; T]> for SecretBytes<T> {
     fn as_mut(&mut self) -> &mut [u8; T] {
         self.bytes.as_mut()
@@ -70,6 +75,29 @@ impl<const T: usize> Debug for SecretBytes<T> {
         write!(f, "[secret value]")
     }
 }
+#[cfg(feature = "serde")]
+impl<const T: usize> Serialize for SecretBytes<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        SecretBytesSerde(self.as_bytes().to_owned()).serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de, const T: usize> Deserialize<'de> for SecretBytes<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(SecretBytes::from(
+            SecretBytesSerde::deserialize(deserializer)?.0,
+        ))
+    }
+}
+#[cfg(feature = "serde")]
+#[derive(Serialize, Deserialize)]
+struct SecretBytesSerde<const T: usize>(#[serde(with = "serde_arrays")] [u8; T]);
 
 /// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]

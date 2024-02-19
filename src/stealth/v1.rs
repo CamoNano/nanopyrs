@@ -161,7 +161,6 @@ impl StealthKeysTrait for StealthKeysV1 {
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthViewKeysV1 {
     versions: StealthAccountVersions,
     compressed_spend_key: CompressedEdwardsY,
@@ -248,8 +247,44 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
     }
 }
 
+#[cfg(feature = "serde")]
+impl Serialize for StealthViewKeysV1 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        StealthViewKeysV1Serde {
+            versions: self.versions,
+            point_spend_key: self.point_spend_key,
+            private_view: self.private_view.clone(),
+        }
+        .serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for StealthViewKeysV1 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let keys = StealthViewKeysV1Serde::deserialize(deserializer)?;
+        Ok(StealthViewKeysV1 {
+            versions: keys.versions,
+            compressed_spend_key: keys.point_spend_key.compress(),
+            point_spend_key: keys.point_spend_key,
+            private_view: keys.private_view.clone(),
+        })
+    }
+}
+#[cfg(feature = "serde")]
+#[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
+struct StealthViewKeysV1Serde {
+    versions: StealthAccountVersions,
+    point_spend_key: EdwardsPoint,
+    private_view: Scalar,
+}
+
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthAccountV1 {
     account: String,
     versions: StealthAccountVersions,
@@ -293,6 +328,42 @@ impl Display for StealthAccountV1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.account)
     }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for StealthAccountV1 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        StealthAccountV1Serde {
+            versions: self.versions,
+            point_spend_key: self.point_spend_key,
+            point_view_key: self.point_view_key,
+        }
+        .serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for StealthAccountV1 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let keys = StealthAccountV1Serde::deserialize(deserializer)?;
+        Ok(points_to_account(
+            keys.versions,
+            keys.point_spend_key,
+            keys.point_view_key,
+        ))
+    }
+}
+#[cfg(feature = "serde")]
+#[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
+struct StealthAccountV1Serde {
+    versions: StealthAccountVersions,
+    point_spend_key: EdwardsPoint,
+    point_view_key: EdwardsPoint,
 }
 
 stealth_address_tests!(

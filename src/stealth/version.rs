@@ -1,4 +1,5 @@
 use crate::{auto_from_impl, constants::*};
+use std::ops::RangeInclusive;
 use zeroize::Zeroize;
 
 #[cfg(feature = "serde")]
@@ -33,17 +34,24 @@ macro_rules! versions {
     };
 }
 
+fn all_possible_versions() -> RangeInclusive<u8> {
+    LOWEST_POSSIBLE_STEALTH_PROTOCOL_VERSION..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
+}
+
+fn all_supported_versions() -> RangeInclusive<u8> {
+    LOWEST_POSSIBLE_STEALTH_PROTOCOL_VERSION..=HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
+}
+
 fn is_possible_version(version: u8) -> bool {
-    version > 0 && version <= HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
+    all_possible_versions().contains(&version)
 }
 
 fn is_supported_version(version: u8) -> bool {
-    version > 0 && version <= HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
+    all_supported_versions().contains(&version)
 }
 
 /// Signals the version(s) which a `stealth_` account supports
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StealthAccountVersions {
     supported_versions: [bool; 8],
 }
@@ -51,6 +59,16 @@ impl StealthAccountVersions {
     /// Create `StealthAccountVersions` with no versions enabled
     pub fn empty() -> StealthAccountVersions {
         StealthAccountVersions::from([false; 8])
+    }
+
+    /// Create `StealthAccountVersions` with all of the given versions enabled.
+    /// Versions which are not supported by this software will still be set.
+    pub fn new_signaling(versions: &[u8]) -> StealthAccountVersions {
+        let mut version = StealthAccountVersions::empty();
+        for i in versions {
+            version.force_enable_version(*i);
+        }
+        version
     }
 
     /// Create `StealthAccountVersions` with all of the given versions enabled.
@@ -109,16 +127,30 @@ impl StealthAccountVersions {
 
     /// Returns the highest version that is supported by the `stealth_` account **but** not necessarily supported by this software
     pub fn highest_signaled_version(&self) -> Option<u8> {
-        (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
+        all_possible_versions()
             .rev()
             .find(|&version| self.signals_version(version))
     }
 
     /// Returns the highest version that is supported by the `stealth_` account **and** supported by this software
     pub fn highest_supported_version(&self) -> Option<u8> {
-        (0..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION)
+        all_possible_versions()
             .rev()
             .find(|&version| self.supports_version(version))
+    }
+
+    /// Returns all versions that are supported by the `stealth_` account **but** not necessarily supported by this software
+    pub fn all_signaled_versions(&self) -> Vec<u8> {
+        all_possible_versions()
+            .filter(|version| self.signals_version(*version))
+            .collect()
+    }
+
+    /// Returns all versions that are supported by the `stealth_` account **and** supported by this software
+    pub fn all_supported_versions(&self) -> Vec<u8> {
+        all_possible_versions()
+            .filter(|version| self.supports_version(*version))
+            .collect()
     }
 
     /// Encode the version support to a `u8`
@@ -141,6 +173,26 @@ impl StealthAccountVersions {
             };
         }
         StealthAccountVersions::from(versions)
+    }
+}
+#[cfg(feature = "serde")]
+impl Serialize for StealthAccountVersions {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.encode_to_bits().serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for StealthAccountVersions {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(StealthAccountVersions::decode_from_bits(u8::deserialize(
+            deserializer,
+        )?))
     }
 }
 auto_from_impl!(From: [bool; 8] => StealthAccountVersions);
@@ -200,6 +252,20 @@ mod tests {
         assert!(TEST_VERSIONS_1.highest_supported_version() == Some(1));
         assert!(TEST_VERSIONS_2.highest_supported_version().is_none());
         assert!(TEST_VERSIONS_3.highest_supported_version() == Some(1));
+    }
+
+    #[test]
+    fn all_signaled_versions() {
+        assert!(TEST_VERSIONS_1.all_signaled_versions() == vec!(1, 3, 5, 6));
+        assert!(TEST_VERSIONS_2.all_signaled_versions() == vec!(2, 5, 6, 8));
+        assert!(TEST_VERSIONS_3.all_signaled_versions() == vec!(1, 2, 3, 4, 5, 6, 7, 8));
+    }
+
+    #[test]
+    fn all_supported_versions() {
+        assert!(TEST_VERSIONS_1.all_supported_versions() == vec!(1));
+        assert!(TEST_VERSIONS_2.all_supported_versions().is_empty());
+        assert!(TEST_VERSIONS_3.all_supported_versions() == vec!(1));
     }
 
     #[test]

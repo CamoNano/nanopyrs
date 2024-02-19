@@ -77,7 +77,6 @@ impl_op_ex_commutative!(*|a: &Key, b: &EdwardsPoint| -> Account { Account::from(
 
 /// A `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Account {
     pub account: String,
     pub compressed: CompressedEdwardsY,
@@ -119,6 +118,24 @@ impl Account {
     /// Check the validity of a signature made by this account's private key
     pub fn is_valid_signature(&self, message: &[u8], signature: &Signature) -> bool {
         is_valid_signature(message, signature, self)
+    }
+}
+#[cfg(feature = "serde")]
+impl Serialize for Account {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.point.serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Account {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Account::from(EdwardsPoint::deserialize(deserializer)?))
     }
 }
 

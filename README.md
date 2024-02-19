@@ -10,7 +10,9 @@ Things may or may not work before version `1.0.0`.
 
 *Use at your own risk. I cannot guarantee that this library is perfect.*
 
-## RPC
+## Feature Flags
+
+### RPC
 
 RPC functionality is enabled by the `rpc` feature, which is **disabled by default**.
 
@@ -18,13 +20,13 @@ Currently, only the following commands are officially supported: `account_balanc
 
 . . . but any other command can be implemented manually with the help of the `command()` method of `nanopyrs::rpc::Rpc`, and various functions in `nanopyrs::rpc::util`.
 
-## Stealth Accounts
+### Stealth Accounts
 
 Stealth account functionality is enabled by the `stealth` feature, which is **disabled by default**.
 
 Note that stealth accounts are a **custom, experimental, and non-standard feature** of this library, and are generally not supported by wallets or the wider Nano ecosystem.
 
-## Serde support
+### Serde
 
 [Serde](https://docs.rs/serde/latest/serde/) support is enabled by the `serde` feature, which is **disabled by default**.
 

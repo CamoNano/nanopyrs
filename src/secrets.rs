@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::error::NanoError;
 
-/// Create a `SecretBytes<T>`
+/// Create a `SecretBytes<N>`
 #[macro_export]
 macro_rules! secret {
     ($data: expr) => {{
@@ -30,13 +30,13 @@ macro_rules! scalar {
     }};
 }
 
-/// A wrapper for `[u8; T]` that automatically calls `zeroize` when dropped
+/// A wrapper for `[u8; N]` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct SecretBytes<const T: usize> {
-    bytes: Box<[u8; T]>,
+pub struct SecretBytes<const N: usize> {
+    bytes: Box<[u8; N]>,
 }
-impl<const T: usize> SecretBytes<T> {
-    pub fn as_bytes(&self) -> &[u8; T] {
+impl<const N: usize> SecretBytes<N> {
+    pub fn as_bytes(&self) -> &[u8; N] {
         &self.bytes
     }
     pub fn as_slice(&self) -> &[u8] {
@@ -46,8 +46,8 @@ impl<const T: usize> SecretBytes<T> {
         self.bytes.as_ptr()
     }
 }
-impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
-    fn from(mut value: [u8; T]) -> Self {
+impl<const N: usize> From<[u8; N]> for SecretBytes<N> {
+    fn from(mut value: [u8; N]) -> Self {
         let secret = SecretBytes {
             bytes: Box::new(value),
         };
@@ -55,49 +55,56 @@ impl<const T: usize> From<[u8; T]> for SecretBytes<T> {
         secret
     }
 }
-impl<const T: usize> From<SecretBytes<T>> for [u8; T] {
-    fn from(value: SecretBytes<T>) -> Self {
+impl<const N: usize> From<SecretBytes<N>> for [u8; N] {
+    fn from(value: SecretBytes<N>) -> Self {
         *value.bytes
     }
 }
-impl<const T: usize> AsMut<[u8; T]> for SecretBytes<T> {
-    fn as_mut(&mut self) -> &mut [u8; T] {
+impl<const N: usize> AsMut<[u8; N]> for SecretBytes<N> {
+    fn as_mut(&mut self) -> &mut [u8; N] {
         self.bytes.as_mut()
     }
 }
-impl<const T: usize> AsRef<[u8; T]> for SecretBytes<T> {
-    fn as_ref(&self) -> &[u8; T] {
+impl<const N: usize> AsRef<[u8; N]> for SecretBytes<N> {
+    fn as_ref(&self) -> &[u8; N] {
         &self.bytes
     }
 }
-impl<const T: usize> Debug for SecretBytes<T> {
+impl<const N: usize> Debug for SecretBytes<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[secret value]")
     }
 }
 #[cfg(feature = "serde")]
-impl<const T: usize> Serialize for SecretBytes<T> {
+impl<const N: usize> Serialize for SecretBytes<N> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        SecretBytesSerde(self.as_bytes().to_owned()).serialize(serializer)
+        SecretBytesSerde {
+            bytes: *self.as_bytes(),
+        }
+        .serialize(serializer)
     }
 }
 #[cfg(feature = "serde")]
-impl<'de, const T: usize> Deserialize<'de> for SecretBytes<T> {
+impl<'de, const N: usize> Deserialize<'de> for SecretBytes<N> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         Ok(SecretBytes::from(
-            SecretBytesSerde::deserialize(deserializer)?.0,
+            SecretBytesSerde::deserialize(deserializer)?.bytes,
         ))
     }
 }
+/// Serde-compatible representation of `SecretBytes`
 #[cfg(feature = "serde")]
-#[derive(Serialize, Deserialize)]
-struct SecretBytesSerde<const T: usize>(#[serde(with = "serde_arrays")] [u8; T]);
+#[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
+struct SecretBytesSerde<const N: usize> {
+    #[serde(with = "serde_arrays")]
+    bytes: [u8; N],
+}
 
 /// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]

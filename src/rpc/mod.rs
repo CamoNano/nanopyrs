@@ -19,6 +19,22 @@ pub use error::RpcError;
 /// A receivable (pending) transaction.
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AccountInfo {
+    pub frontier: [u8; 32],
+    pub open_block: [u8; 32],
+    pub representative_block: [u8; 32],
+    pub balance: u128,
+    pub modified_timestamp: u64,
+    pub block_count: usize,
+    pub version: usize,
+    pub representative: Account,
+    pub weight: u128,
+    pub receivable: usize,
+}
+
+/// A receivable (pending) transaction.
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Receivable {
     /// The recipient account of this transaction
     pub recipient: Account,
@@ -90,6 +106,11 @@ impl Rpc {
             .account_history(account, count, head, offset)
             .await
             .result
+    }
+
+    /// Gets general information about an account
+    pub async fn account_info(&self, account: &Account) -> Result<AccountInfo, RpcError> {
+        self.0.account_info(account).await.result
     }
 
     /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.

@@ -1,4 +1,4 @@
-use super::{util::*, Receivable, RpcError};
+use super::{util::*, AccountInfo, Receivable, RpcError};
 use crate::{block::check_work, Account, Block};
 use hex::FromHexError;
 
@@ -39,6 +39,21 @@ pub fn account_history(raw_json: JsonValue, account: &Account) -> Result<Vec<Blo
     Ok(blocks)
 }
 
+pub fn account_info(raw_json: JsonValue) -> Result<AccountInfo, RpcError> {
+    Ok(AccountInfo {
+        frontier: bytes_from_json(&raw_json["frontier"])?,
+        open_block: bytes_from_json(&raw_json["open_block"])?,
+        representative_block: bytes_from_json(&raw_json["representative_block"])?,
+        balance: u128_from_json(&raw_json["balance"])?,
+        modified_timestamp: u64_from_json(&raw_json["modified_timestamp"])?,
+        block_count: usize_from_json(&raw_json["block_count"])?,
+        version: usize_from_json(&raw_json["account_version"])?,
+        representative: account_from_json(&raw_json["representative"])?,
+        weight: u128_from_json(&raw_json["weight"])?,
+        receivable: usize_from_json(&raw_json["receivable"])?,
+    })
+}
+
 pub fn account_representative(history: Vec<Block>) -> Result<Account, RpcError> {
     let last_block = history.first().ok_or(RpcError::InvalidJsonDataType)?;
     Ok(last_block.representative.clone())
@@ -66,12 +81,7 @@ pub fn accounts_frontiers(
             continue;
         }
 
-        let frontier = hex::decode(trim_json(&frontier.to_string()))?;
-        let frontier = frontier
-            .try_into()
-            .map_err(|_| FromHexError::InvalidStringLength)?;
-
-        frontiers.push(Some(frontier))
+        frontiers.push(Some(bytes_from_json(frontier)?))
     }
     Ok(frontiers)
 }
@@ -91,8 +101,7 @@ pub fn accounts_receivable(
 
         for hash in account_hashes? {
             let amount = u128_from_json(&raw_json["blocks"][&account.to_string()][&hash])?;
-            let bytes = hex::decode(trim_json(hash))?;
-            let bytes = bytes
+            let bytes = from_hex(hash)?
                 .try_into()
                 .map_err(|_| FromHexError::InvalidStringLength)?;
 
@@ -164,10 +173,7 @@ pub fn blocks_info(
 }
 
 pub fn process(raw_json: JsonValue, hash: [u8; 32]) -> Result<[u8; 32], RpcError> {
-    let rpc_hash = hex::decode(trim_json(&raw_json["hash"].to_string()))?;
-    let rpc_hash: [u8; 32] = rpc_hash
-        .try_into()
-        .map_err(|_| FromHexError::InvalidStringLength)?;
+    let rpc_hash: [u8; 32] = bytes_from_json(&raw_json["hash"])?;
 
     if rpc_hash != hash {
         return Err(RpcError::InvalidData);
@@ -180,17 +186,12 @@ pub fn work_generate(
     work_hash: [u8; 32],
     custom_difficulty: Option<[u8; 8]>,
 ) -> Result<[u8; 8], RpcError> {
-    let work = hex::decode(trim_json(&raw_json["work"].to_string()))?;
-    let work: [u8; 8] = work
-        .try_into()
-        .map_err(|_| FromHexError::InvalidStringLength)?;
+    let work: [u8; 8] = bytes_from_json(&raw_json["work"])?;
 
     let difficulty: [u8; 8] = if let Some(difficulty) = custom_difficulty {
         difficulty
     } else {
-        hex::decode(trim_json(&raw_json["difficulty"].to_string()))?
-            .try_into()
-            .map_err(|_| FromHexError::InvalidStringLength)?
+        bytes_from_json(&raw_json["difficulty"])?
     };
 
     match check_work(work_hash, difficulty, work) {
@@ -201,6 +202,7 @@ pub fn work_generate(
 
 #[cfg(test)]
 mod tests {
+    use super::to_uppercase_hex;
     use crate::{block::check_work, Account, Block, BlockType};
     use serde_json::json;
 
@@ -319,6 +321,53 @@ mod tests {
                     }
                 )
         )
+    }
+
+    #[test]
+    fn account_info() {
+        let info = super::account_info(json!({
+            "frontier": "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D4F",
+            "open_block": "0E3F07F7F2B8AEDEA4A984E29BFE1E3933BA473DD3E27C662EC041F6EA3917A0",
+            "representative_block": "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D41",
+            "balance": "11999999999999999918751838129509869131",
+            "confirmed_balance": "11999999999999999918751838129509869131",
+            "modified_timestamp": "1606934662",
+            "block_count": "22966",
+            "account_version": "1",
+            "confirmed_height": "22966",
+            "confirmed_frontier": "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D4F",
+            "representative": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
+            "confirmed_representative": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
+            "weight": "11999999999999999918751838129509869132",
+            "pending": "34",
+            "receivable": "2",
+            "confirmed_pending": "0",
+            "confirmed_receivable": "2"
+        })).unwrap();
+        assert!(
+            to_uppercase_hex(&info.frontier)
+                == "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D4F"
+        );
+        assert!(
+            to_uppercase_hex(&info.open_block)
+                == "0E3F07F7F2B8AEDEA4A984E29BFE1E3933BA473DD3E27C662EC041F6EA3917A0"
+        );
+        assert!(
+            to_uppercase_hex(&info.representative_block)
+                == "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D41"
+        );
+        assert!(info.balance == 11999999999999999918751838129509869131);
+        assert!(info.modified_timestamp == 1606934662);
+        assert!(info.block_count == 22966);
+        assert!(info.version == 1);
+        assert!(
+            info.representative
+                == "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5"
+                    .parse()
+                    .unwrap()
+        );
+        assert!(info.weight == 11999999999999999918751838129509869132);
+        assert!(info.receivable == 2);
     }
 
     #[test]

@@ -14,6 +14,10 @@ pub fn trim_json(value: &str) -> &str {
     value.trim_matches('\"')
 }
 
+pub fn from_hex(encoded: &str) -> Result<Vec<u8>, RpcError> {
+    Ok(hex::decode(trim_json(encoded))?)
+}
+
 pub fn to_uppercase_hex(bytes: &[u8]) -> String {
     hex::encode(bytes).to_uppercase()
 }
@@ -27,14 +31,26 @@ pub fn map_keys_from_json(value: &JsonValue) -> Result<Vec<&String>, RpcError> {
         .collect())
 }
 
+pub fn usize_from_json(value: &JsonValue) -> Result<usize, RpcError> {
+    trim_json(&value.to_string())
+        .parse::<usize>()
+        .map_err(|_| RpcError::InvalidInteger)
+}
+
+pub fn u64_from_json(value: &JsonValue) -> Result<u64, RpcError> {
+    trim_json(&value.to_string())
+        .parse::<u64>()
+        .map_err(|_| RpcError::InvalidInteger)
+}
+
 pub fn u128_from_json(value: &JsonValue) -> Result<u128, RpcError> {
     trim_json(&value.to_string())
         .parse::<u128>()
-        .map_err(|_| RpcError::InvalidU128)
+        .map_err(|_| RpcError::InvalidInteger)
 }
 
 pub fn bytes_from_json<const T: usize>(value: &JsonValue) -> Result<[u8; T], RpcError> {
-    hex::decode(trim_json(&value.to_string()))?
+    from_hex(&value.to_string())?
         .try_into()
         .or(Err(FromHexError::InvalidStringLength.into()))
 }

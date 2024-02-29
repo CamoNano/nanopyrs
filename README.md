@@ -16,7 +16,7 @@ Things may or may not work before version `1.0.0`.
 
 RPC functionality is enabled by the `rpc` feature, which is **disabled by default**.
 
-Currently, only the following commands are officially supported: `account_balance`, `account_history`, `account_representative`, `accounts_balances`, `accounts_frontiers`, `accounts_receivable`, `accounts_representatives`, `block_info`, `blocks_info`, `process`, `work_generate`
+Currently, only the following commands are officially supported: `account_balance`, `account_history`, `account_info`, `account_representative`, `accounts_balances`, `accounts_frontiers`, `accounts_receivable`, `accounts_representatives`, `block_info`, `blocks_info`, `process`, `work_generate`
 
 . . . but any other command can be implemented manually with the help of the `command()` method of `nanopyrs::rpc::Rpc`, and various functions in `nanopyrs::rpc::util`.
 

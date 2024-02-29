@@ -17,9 +17,9 @@ pub enum RpcError {
     /// Error while parsing json: invalid account
     #[error("error while parsing json: invalid account")]
     InvalidAccount,
-    /// Error while parsing json: invalid u128
-    #[error("error while parsing json: invalid u128")]
-    InvalidU128,
+    /// Error while parsing json: invalid integer
+    #[error("error while parsing json: invalid integer")]
+    InvalidInteger,
     /// error while parsing json: unexpected data type
     #[error("error while parsing json: unexpected data type")]
     InvalidJsonDataType,

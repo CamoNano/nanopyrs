@@ -1,4 +1,4 @@
-use super::{encode, error::RpcError, parse, Receivable};
+use super::{encode, error::RpcError, parse, AccountInfo, Receivable};
 use crate::{Account, Block};
 
 use json::{Map, Value as JsonValue};
@@ -133,6 +133,16 @@ impl DebugRpc {
         let response = request!(self, encode::account_history(account, count, head, offset));
         let result = match response.result {
             Ok(json) => parse::account_history(json, account),
+            Err(err) => Err(err),
+        };
+        map_response!(response, result)
+    }
+
+    /// Gets general information about an account
+    pub async fn account_info(&self, account: &Account) -> Response<AccountInfo> {
+        let response = request!(self, encode::account_info(account));
+        let result = match response.result {
+            Ok(json) => parse::account_info(json),
             Err(err) => Err(err),
         };
         map_response!(response, result)

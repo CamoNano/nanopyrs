@@ -30,6 +30,17 @@ pub fn account_history(
     JsonValue::Object(arguments)
 }
 
+pub fn account_info(account: &Account) -> JsonValue {
+    let mut arguments = Map::new();
+    arguments.insert("action".into(), "account_info".into());
+    arguments.insert("account".into(), account.into());
+    arguments.insert("representative".into(), "true".into());
+    arguments.insert("weight".into(), "true".into());
+    arguments.insert("receivable".into(), "true".into());
+    arguments.insert("include_confirmed".into(), "true".into());
+    JsonValue::Object(arguments)
+}
+
 pub fn accounts_balances(accounts: &[Account]) -> JsonValue {
     let accounts: Vec<String> = accounts.iter().map(|account| account.to_string()).collect();
 
@@ -153,6 +164,25 @@ mod tests {
                 "raw": "true"
             })
         )
+    }
+
+    #[test]
+    fn account_info() {
+        let account = "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5"
+            .try_into()
+            .unwrap();
+
+        let json = super::account_info(&account);
+        assert!(
+            json == json!({
+                "action": "account_info",
+                "account": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
+                "representative": "true",
+                "weight": "true",
+                "receivable": "true",
+                "include_confirmed": "true"
+            })
+        );
     }
 
     #[test]

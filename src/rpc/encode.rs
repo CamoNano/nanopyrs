@@ -37,7 +37,6 @@ pub fn account_info(account: &Account) -> JsonValue {
     arguments.insert("representative".into(), "true".into());
     arguments.insert("weight".into(), "true".into());
     arguments.insert("receivable".into(), "true".into());
-    arguments.insert("include_confirmed".into(), "true".into());
     JsonValue::Object(arguments)
 }
 
@@ -95,6 +94,7 @@ pub fn blocks_info(hashes: &[[u8; 32]]) -> JsonValue {
     arguments.insert("action".into(), "blocks_info".into());
     arguments.insert("hashes".into(), hashes.as_slice().into());
     arguments.insert("json_block".into(), "true".into());
+    arguments.insert("include_not_found".into(), "true".into());
     JsonValue::Object(arguments)
 }
 

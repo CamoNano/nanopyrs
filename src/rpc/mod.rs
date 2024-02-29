@@ -20,15 +20,23 @@ pub use error::RpcError;
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AccountInfo {
+    /// Hash of the frontier block of this account
     pub frontier: [u8; 32],
+    /// Hash of the `open` block of this account
     pub open_block: [u8; 32],
-    pub representative_block: [u8; 32],
+    /// Balance of this account
     pub balance: u128,
+    /// Timestamp of this account's last block
     pub modified_timestamp: u64,
+    /// Number of blocks in this account's history
     pub block_count: usize,
+    /// The version of this account
     pub version: usize,
+    /// The representative of this account
     pub representative: Account,
+    /// The voting weight of this account
     pub weight: u128,
+    /// The number of receivable transactions for this account
     pub receivable: usize,
 }
 
@@ -108,13 +116,20 @@ impl Rpc {
             .result
     }
 
-    /// Gets general information about an account
-    pub async fn account_info(&self, account: &Account) -> Result<AccountInfo, RpcError> {
+    /// Gets general information about an account.
+    /// Returns `None` if the account has not been opened.
+    pub async fn account_info(&self, account: &Account) -> Result<Option<AccountInfo>, RpcError> {
         self.0.account_info(account).await.result
     }
 
-    /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.
-    pub async fn account_representative(&self, account: &Account) -> Result<Account, RpcError> {
+    /// Indirect, relies on `account_history`.
+    /// This allows the data to be verified to an extent.
+    ///
+    /// If an account is not yet opened, its representative will be returned as `None`.
+    pub async fn account_representative(
+        &self,
+        account: &Account,
+    ) -> Result<Option<Account>, RpcError> {
         self.0.account_representative(account).await.result
     }
 
@@ -144,7 +159,7 @@ impl Rpc {
             .result
     }
 
-    /// If an account is not yet opened, its frontier will be returned as `None`
+    /// If an account is not yet opened, its representative will be returned as `None`
     pub async fn accounts_representatives(
         &self,
         accounts: &[Account],
@@ -152,12 +167,12 @@ impl Rpc {
         self.0.accounts_representatives(accounts).await.result
     }
 
-    /// Legacy blocks will return `None`
+    /// Legacy blocks, and blocks that don't exist, will return `None`
     pub async fn block_info(&self, hash: [u8; 32]) -> Result<Option<Block>, RpcError> {
         self.0.block_info(hash).await.result
     }
 
-    /// Legacy blocks will return `None`
+    /// Legacy blocks, and blocks that don't exist, will return `None`
     pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Result<Vec<Option<Block>>, RpcError> {
         self.0.blocks_info(hashes).await.result
     }

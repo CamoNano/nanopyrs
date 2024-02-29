@@ -39,11 +39,15 @@ pub fn account_history(raw_json: JsonValue, account: &Account) -> Result<Vec<Blo
     Ok(blocks)
 }
 
-pub fn account_info(raw_json: JsonValue) -> Result<AccountInfo, RpcError> {
-    Ok(AccountInfo {
+/// If an account is not yet opened, its frontier will be returned as `None`
+pub fn account_info(raw_json: JsonValue) -> Result<Option<AccountInfo>, RpcError> {
+    if !raw_json["error"].is_null() {
+        return Ok(None);
+    }
+
+    Ok(Some(AccountInfo {
         frontier: bytes_from_json(&raw_json["frontier"])?,
         open_block: bytes_from_json(&raw_json["open_block"])?,
-        representative_block: bytes_from_json(&raw_json["representative_block"])?,
         balance: u128_from_json(&raw_json["balance"])?,
         modified_timestamp: u64_from_json(&raw_json["modified_timestamp"])?,
         block_count: usize_from_json(&raw_json["block_count"])?,
@@ -51,20 +55,21 @@ pub fn account_info(raw_json: JsonValue) -> Result<AccountInfo, RpcError> {
         representative: account_from_json(&raw_json["representative"])?,
         weight: u128_from_json(&raw_json["weight"])?,
         receivable: usize_from_json(&raw_json["receivable"])?,
-    })
+    }))
 }
 
-pub fn account_representative(history: Vec<Block>) -> Result<Account, RpcError> {
-    let last_block = history.first().ok_or(RpcError::InvalidJsonDataType)?;
-    Ok(last_block.representative.clone())
+pub fn account_representative(history: Vec<Block>) -> Result<Option<Account>, RpcError> {
+    Ok(history.first().map(|newest| newest.representative.clone()))
 }
 
 pub fn accounts_balances(raw_json: JsonValue, accounts: &[Account]) -> Result<Vec<u128>, RpcError> {
     let mut balances = vec![];
     for account in accounts {
-        balances.push(u128_from_json(
-            &raw_json["balances"][account.to_string()]["balance"],
-        )?)
+        let result = &raw_json["balances"][account.to_string()]["balance"];
+        if result.is_null() {
+            balances.push(0)
+        }
+        balances.push(u128_from_json(result)?)
     }
     Ok(balances)
 }
@@ -112,6 +117,7 @@ pub fn accounts_receivable(
     Ok(all_receivable)
 }
 
+/// If an account is not yet opened, its representative will be returned as `None`
 pub fn accounts_representatives(
     raw_json: JsonValue,
     accounts: &[Account],
@@ -131,8 +137,11 @@ pub fn accounts_representatives(
     Ok(representatives)
 }
 
-/// Legacy blocks will return `None`
+/// Legacy blocks, and blocks that don't exist, will return `None`
 pub fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> {
+    if !raw_json["error"].is_null() {
+        return Ok(None);
+    }
     if trim_json(&raw_json["contents"]["type"].to_string()) != "state" {
         return Ok(None);
     }
@@ -144,7 +153,7 @@ pub fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> {
     Ok(Some(block))
 }
 
-/// Legacy blocks will return `None`
+/// Legacy blocks, and blocks that don't exist, will return `None`
 pub fn blocks_info(
     raw_json: JsonValue,
     hashes: &[[u8; 32]],
@@ -330,20 +339,14 @@ mod tests {
             "open_block": "0E3F07F7F2B8AEDEA4A984E29BFE1E3933BA473DD3E27C662EC041F6EA3917A0",
             "representative_block": "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D41",
             "balance": "11999999999999999918751838129509869131",
-            "confirmed_balance": "11999999999999999918751838129509869131",
             "modified_timestamp": "1606934662",
             "block_count": "22966",
             "account_version": "1",
-            "confirmed_height": "22966",
-            "confirmed_frontier": "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D4F",
             "representative": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
-            "confirmed_representative": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
             "weight": "11999999999999999918751838129509869132",
             "pending": "34",
             "receivable": "2",
-            "confirmed_pending": "0",
-            "confirmed_receivable": "2"
-        })).unwrap();
+        })).unwrap().unwrap();
         assert!(
             to_uppercase_hex(&info.frontier)
                 == "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D4F"
@@ -352,10 +355,7 @@ mod tests {
             to_uppercase_hex(&info.open_block)
                 == "0E3F07F7F2B8AEDEA4A984E29BFE1E3933BA473DD3E27C662EC041F6EA3917A0"
         );
-        assert!(
-            to_uppercase_hex(&info.representative_block)
-                == "80A6745762493FA21A22718ABFA4F635656A707B48B3324198AC7F3938DE6D41"
-        );
+
         assert!(info.balance == 11999999999999999918751838129509869131);
         assert!(info.modified_timestamp == 1606934662);
         assert!(info.block_count == 22966);
@@ -368,6 +368,12 @@ mod tests {
         );
         assert!(info.weight == 11999999999999999918751838129509869132);
         assert!(info.receivable == 2);
+
+        assert!(super::account_info(json!({
+            "error": "Account not found",
+        }))
+        .unwrap()
+        .is_none());
     }
 
     #[test]
@@ -395,6 +401,7 @@ mod tests {
             signature: signature.try_into().unwrap(),
             work: hex::decode("b1bd2f559a745b5a").unwrap().try_into().unwrap(),
         }])
+        .unwrap()
         .unwrap();
         assert!(
             representative

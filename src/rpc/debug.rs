@@ -138,8 +138,9 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// Gets general information about an account
-    pub async fn account_info(&self, account: &Account) -> Response<AccountInfo> {
+    /// Gets general information about an account.
+    /// Returns `None` if the account has not been opened.
+    pub async fn account_info(&self, account: &Account) -> Response<Option<AccountInfo>> {
         let response = request!(self, encode::account_info(account));
         let result = match response.result {
             Ok(json) => parse::account_info(json),
@@ -148,8 +149,11 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// Indirect, relies on `account_history`. This allows the data to be verified to an extent.
-    pub async fn account_representative(&self, account: &Account) -> Response<Account> {
+    /// Indirect, relies on `account_history`.
+    /// This allows the data to be verified to an extent.
+    ///
+    /// If an account is not yet opened, its representative will be returned as `None`.
+    pub async fn account_representative(&self, account: &Account) -> Response<Option<Account>> {
         let response = self.account_history(account, 1, None, None).await;
         let result = match response.result {
             Ok(history) => parse::account_representative(history),
@@ -211,7 +215,7 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// If an account is not yet opened, its frontier will be returned as `None`
+    /// If an account is not yet opened, its representative will be returned as `None`
     pub async fn accounts_representatives(
         &self,
         accounts: &[Account],
@@ -228,7 +232,7 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// Legacy blocks will return `None`
+    /// Legacy blocks, and blocks that don't exist, will return `None`
     pub async fn block_info(&self, hash: [u8; 32]) -> Response<Option<Block>> {
         let response = request!(self, encode::block_info(hash));
         let result = match response.result {
@@ -238,7 +242,7 @@ impl DebugRpc {
         map_response!(response, result)
     }
 
-    /// Legacy blocks will return `None`
+    /// Legacy blocks, and blocks that don't exist, will return `None`
     pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Response<Vec<Option<Block>>> {
         if hashes.is_empty() {
             return Response::no_request(Ok(vec![]));

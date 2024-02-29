@@ -16,7 +16,14 @@ use serde::{Deserialize, Serialize};
 
 pub use error::RpcError;
 
-/// A receivable (pending) transaction.
+/// General info about a block
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct BlockInfo {
+    // TODO
+}
+
+/// General info about an account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AccountInfo {

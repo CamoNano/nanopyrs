@@ -635,7 +635,7 @@ mod tests {
 
         assert!(info.height == 58);
         assert!(info.timestamp == 999888777);
-        assert!(info.confirmed == true);
+        assert!(info.confirmed);
         assert!(info.block == block);
 
         // block not found
@@ -682,7 +682,7 @@ mod tests {
 
         let signature: [u8; 64] = hex::decode("82D41BC16F313E4B2243D14DFFA2FB04679C540C2095FEE7EAE0F2F26880AD56DD48D87A7CC5DD760C5B2D76EE2C205506AA557BF00B60D8DEE312EC7343A501").unwrap().try_into().unwrap();
 
-        let block = Some(Block {
+        let block = Block {
             block_type: BlockType::Send,
             account: "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est"
                 .try_into()
@@ -703,13 +703,13 @@ mod tests {
                 .unwrap(),
             signature: signature.try_into().unwrap(),
             work: hex::decode("8a142e07a10996d5").unwrap().try_into().unwrap(),
-        });
+        };
 
         let info = infos[0].clone().unwrap();
         assert!(info.height == 581);
         assert!(info.timestamp == 12299);
-        assert!(info.confirmed == false);
-        assert!(info.block == block.unwrap());
+        assert!(!info.confirmed);
+        assert!(info.block == block);
 
         assert!(infos[1].is_none());
     }

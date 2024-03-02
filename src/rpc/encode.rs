@@ -179,8 +179,7 @@ mod tests {
                 "account": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
                 "representative": "true",
                 "weight": "true",
-                "receivable": "true",
-                "include_confirmed": "true"
+                "receivable": "true"
             })
         );
     }
@@ -294,7 +293,8 @@ mod tests {
             json == json!({
                 "action": "blocks_info",
                 "json_block": "true",
-                "hashes": ["87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9"]
+                "hashes": ["87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9"],
+                "include_not_found": "true"
             })
         )
     }

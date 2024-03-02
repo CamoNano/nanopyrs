@@ -1,4 +1,4 @@
-use super::RpcError;
+use super::{BlockInfo, RpcError};
 use crate::{Account, Block, BlockType};
 use hex::FromHexError;
 
@@ -49,10 +49,25 @@ pub fn u128_from_json(value: &JsonValue) -> Result<u128, RpcError> {
         .map_err(|_| RpcError::InvalidInteger)
 }
 
+pub fn bool_from_json(value: &JsonValue) -> Result<bool, RpcError> {
+    trim_json(&value.to_string())
+        .parse::<bool>()
+        .map_err(|_| RpcError::InvalidInteger)
+}
+
 pub fn bytes_from_json<const T: usize>(value: &JsonValue) -> Result<[u8; T], RpcError> {
     from_hex(&value.to_string())?
         .try_into()
         .or(Err(FromHexError::InvalidStringLength.into()))
+}
+
+pub fn block_info_from_json(value: &JsonValue, block: Block) -> Result<BlockInfo, RpcError> {
+    Ok(BlockInfo {
+        height: usize_from_json(&value["height"])?,
+        timestamp: u64_from_json(&value["local_timestamp"])?,
+        confirmed: bool_from_json(&value["confirmed"])?,
+        block,
+    })
 }
 
 pub fn account_from_json(value: &JsonValue) -> Result<Account, RpcError> {

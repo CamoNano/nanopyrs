@@ -1,4 +1,4 @@
-use super::{util::*, AccountInfo, Receivable, RpcError};
+use super::{util::*, AccountInfo, BlockInfo, Receivable, RpcError};
 use crate::{block::check_work, Account, Block};
 use hex::FromHexError;
 
@@ -138,7 +138,7 @@ pub fn accounts_representatives(
 }
 
 /// Legacy blocks, and blocks that don't exist, will return `None`
-pub fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> {
+pub fn block_info(raw_json: JsonValue) -> Result<Option<BlockInfo>, RpcError> {
     if !raw_json["error"].is_null() {
         return Ok(None);
     }
@@ -150,35 +150,39 @@ pub fn block_info(raw_json: JsonValue) -> Result<Option<Block>, RpcError> {
     if !block.has_valid_signature() {
         return Err(RpcError::InvalidData);
     }
-    Ok(Some(block))
+    Ok(Some(block_info_from_json(&raw_json, block)?))
 }
 
 /// Legacy blocks, and blocks that don't exist, will return `None`
 pub fn blocks_info(
     raw_json: JsonValue,
     hashes: &[[u8; 32]],
-) -> Result<Vec<Option<Block>>, RpcError> {
-    let mut blocks = vec![];
+) -> Result<Vec<Option<BlockInfo>>, RpcError> {
+    let mut infos = vec![];
     for hash in hashes {
-        let block = &raw_json["blocks"][to_uppercase_hex(hash)];
-        if block.is_null() {
-            blocks.push(None);
+        let json_block = &raw_json["blocks"][to_uppercase_hex(hash)];
+        if json_block.is_null() {
+            infos.push(None);
             continue;
         }
-
-        if trim_json(&block["contents"]["type"].to_string()) != "state" {
-            blocks.push(None)
+        if trim_json(&json_block["contents"]["type"].to_string()) != "state" {
+            infos.push(None)
         }
 
-        let block = block_from_info_json(block)?;
+        let block = block_from_info_json(json_block)?;
         if !block.has_valid_signature() {
             return Err(RpcError::InvalidData);
         }
-        blocks.push(Some(block))
+        infos.push(Some(block_info_from_json(json_block, block)?))
     }
-    let _blocks: Vec<Block> = blocks.iter().flatten().cloned().collect();
-    balances_sanity_check(&_blocks)?;
-    Ok(blocks)
+    let blocks: Vec<Block> = infos
+        .iter()
+        .flatten()
+        .map(|info| &info.block)
+        .cloned()
+        .collect();
+    balances_sanity_check(&blocks)?;
+    Ok(infos)
 }
 
 pub fn process(raw_json: JsonValue, hash: [u8; 32]) -> Result<[u8; 32], RpcError> {
@@ -582,13 +586,13 @@ mod tests {
     fn block_info() {
         // block found
         let signature: [u8; 64] = hex::decode("82D41BC16F313E4B2243D14DFFA2FB04679C540C2095FEE7EAE0F2F26880AD56DD48D87A7CC5DD760C5B2D76EE2C205506AA557BF00B60D8DEE312EC7343A501").unwrap().try_into().unwrap();
-        let block = super::block_info(
+        let info = super::block_info(
             json!({
                 "block_account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
                 "amount": "30000000000000000000000000000000000",
                 "balance": "5606157000000000000000000000000000000",
                 "height": "58",
-                "local_timestamp": "0",
+                "local_timestamp": "999888777",
                 "successor": "8D3AB98B301224253750D448B4BD997132400CEDD0A8432F775724F2D9821C72",
                 "confirmed": "true",
                 "contents":{
@@ -604,55 +608,54 @@ mod tests {
                 },
                 "subtype": "send"
             })
-        ).unwrap();
+        ).unwrap().unwrap();
 
-        assert!(
-            block
-                == Some(Block {
-                    block_type: BlockType::Send,
-                    account: "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est"
-                        .try_into()
-                        .unwrap(),
-                    previous: hex::decode(
-                        "CE898C131AAEE25E05362F247760F8A3ACF34A9796A5AE0D9204E86B0637965E"
-                    )
-                    .unwrap()
-                    .try_into()
-                    .unwrap(),
-                    representative:
-                        "nano_1stofnrxuz3cai7ze75o174bpm7scwj9jn3nxsn8ntzg784jf1gzn1jjdkou"
-                            .try_into()
-                            .unwrap(),
-                    balance: 5606157000000000000000000000000000000,
-                    link: hex::decode(
-                        "5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5"
-                    )
-                    .unwrap()
-                    .try_into()
-                    .unwrap(),
-                    signature: signature.try_into().unwrap(),
-                    work: hex::decode("8a142e07a10996d5").unwrap().try_into().unwrap()
-                })
-        );
+        let block = Block {
+            block_type: BlockType::Send,
+            account: "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est"
+                .try_into()
+                .unwrap(),
+            previous: hex::decode(
+                "CE898C131AAEE25E05362F247760F8A3ACF34A9796A5AE0D9204E86B0637965E",
+            )
+            .unwrap()
+            .try_into()
+            .unwrap(),
+            representative: "nano_1stofnrxuz3cai7ze75o174bpm7scwj9jn3nxsn8ntzg784jf1gzn1jjdkou"
+                .try_into()
+                .unwrap(),
+            balance: 5606157000000000000000000000000000000,
+            link: hex::decode("5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+            signature: signature.try_into().unwrap(),
+            work: hex::decode("8a142e07a10996d5").unwrap().try_into().unwrap(),
+        };
+
+        assert!(info.height == 58);
+        assert!(info.timestamp == 999888777);
+        assert!(info.confirmed == true);
+        assert!(info.block == block);
 
         // block not found
-        let block = super::block_info(json!({"error":"Block not found"})).unwrap();
-        assert!(block.is_none())
+        let info = super::block_info(json!({"error":"Block not found"})).unwrap();
+        assert!(info.is_none())
     }
 
     #[test]
     fn blocks_info() {
-        let blocks = super::blocks_info(
+        let infos = super::blocks_info(
             json!({
                 "blocks": {
                     "87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9": {
                         "block_account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
                         "amount": "30000000000000000000000000000000000",
                         "balance": "5606157000000000000000000000000000000",
-                        "height": "58",
-                        "local_timestamp": "0",
+                        "height": "581",
+                        "local_timestamp": "12299",
                         "successor": "8D3AB98B301224253750D448B4BD997132400CEDD0A8432F775724F2D9821C72",
-                        "confirmed": "true",
+                        "confirmed": "false",
                         "contents": {
                             "type": "state",
                             "account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
@@ -666,7 +669,10 @@ mod tests {
                         },
                         "subtype": "send"
                     }
-                }
+                },
+                "blocks_not_found": [
+                    "5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5"
+                ]
             }),
             &[
                 hex::decode("87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9").unwrap().try_into().unwrap(),
@@ -675,38 +681,37 @@ mod tests {
         ).unwrap();
 
         let signature: [u8; 64] = hex::decode("82D41BC16F313E4B2243D14DFFA2FB04679C540C2095FEE7EAE0F2F26880AD56DD48D87A7CC5DD760C5B2D76EE2C205506AA557BF00B60D8DEE312EC7343A501").unwrap().try_into().unwrap();
-        assert!(
-            blocks
-                == vec!(
-                    Some(Block {
-                        block_type: BlockType::Send,
-                        account:
-                            "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est"
-                                .try_into()
-                                .unwrap(),
-                        previous: hex::decode(
-                            "CE898C131AAEE25E05362F247760F8A3ACF34A9796A5AE0D9204E86B0637965E"
-                        )
-                        .unwrap()
-                        .try_into()
-                        .unwrap(),
-                        representative:
-                            "nano_1stofnrxuz3cai7ze75o174bpm7scwj9jn3nxsn8ntzg784jf1gzn1jjdkou"
-                                .try_into()
-                                .unwrap(),
-                        balance: 5606157000000000000000000000000000000,
-                        link: hex::decode(
-                            "5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5"
-                        )
-                        .unwrap()
-                        .try_into()
-                        .unwrap(),
-                        signature: signature.try_into().unwrap(),
-                        work: hex::decode("8a142e07a10996d5").unwrap().try_into().unwrap()
-                    }),
-                    None
-                )
-        )
+
+        let block = Some(Block {
+            block_type: BlockType::Send,
+            account: "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est"
+                .try_into()
+                .unwrap(),
+            previous: hex::decode(
+                "CE898C131AAEE25E05362F247760F8A3ACF34A9796A5AE0D9204E86B0637965E",
+            )
+            .unwrap()
+            .try_into()
+            .unwrap(),
+            representative: "nano_1stofnrxuz3cai7ze75o174bpm7scwj9jn3nxsn8ntzg784jf1gzn1jjdkou"
+                .try_into()
+                .unwrap(),
+            balance: 5606157000000000000000000000000000000,
+            link: hex::decode("5D1AA8A45F8736519D707FCB375976A7F9AF795091021D7E9C7548D6F45DD8D5")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+            signature: signature.try_into().unwrap(),
+            work: hex::decode("8a142e07a10996d5").unwrap().try_into().unwrap(),
+        });
+
+        let info = infos[0].clone().unwrap();
+        assert!(info.height == 581);
+        assert!(info.timestamp == 12299);
+        assert!(info.confirmed == false);
+        assert!(info.block == block.unwrap());
+
+        assert!(infos[1].is_none());
     }
 
     #[test]

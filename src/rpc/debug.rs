@@ -1,4 +1,4 @@
-use super::{encode, error::RpcError, parse, AccountInfo, Receivable};
+use super::{encode, error::RpcError, parse, AccountInfo, BlockInfo, Receivable};
 use crate::{Account, Block};
 
 use json::{Map, Value as JsonValue};
@@ -233,7 +233,7 @@ impl DebugRpc {
     }
 
     /// Legacy blocks, and blocks that don't exist, will return `None`
-    pub async fn block_info(&self, hash: [u8; 32]) -> Response<Option<Block>> {
+    pub async fn block_info(&self, hash: [u8; 32]) -> Response<Option<BlockInfo>> {
         let response = request!(self, encode::block_info(hash));
         let result = match response.result {
             Ok(json) => parse::block_info(json),
@@ -243,7 +243,7 @@ impl DebugRpc {
     }
 
     /// Legacy blocks, and blocks that don't exist, will return `None`
-    pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Response<Vec<Option<Block>>> {
+    pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Response<Vec<Option<BlockInfo>>> {
         if hashes.is_empty() {
             return Response::no_request(Ok(vec![]));
         }

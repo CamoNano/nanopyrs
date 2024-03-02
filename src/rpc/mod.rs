@@ -20,7 +20,14 @@ pub use error::RpcError;
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BlockInfo {
-    // TODO
+    /// Height of this block on the account's blockchain
+    pub height: usize,
+    /// Timestamp of when this block was created
+    pub timestamp: u64,
+    /// Whether or not this block has been confirmed
+    pub confirmed: bool,
+    /// The block
+    pub block: Block,
 }
 
 /// General info about an account
@@ -175,12 +182,15 @@ impl Rpc {
     }
 
     /// Legacy blocks, and blocks that don't exist, will return `None`
-    pub async fn block_info(&self, hash: [u8; 32]) -> Result<Option<Block>, RpcError> {
+    pub async fn block_info(&self, hash: [u8; 32]) -> Result<Option<BlockInfo>, RpcError> {
         self.0.block_info(hash).await.result
     }
 
     /// Legacy blocks, and blocks that don't exist, will return `None`
-    pub async fn blocks_info(&self, hashes: &[[u8; 32]]) -> Result<Vec<Option<Block>>, RpcError> {
+    pub async fn blocks_info(
+        &self,
+        hashes: &[[u8; 32]],
+    ) -> Result<Vec<Option<BlockInfo>>, RpcError> {
         self.0.blocks_info(hashes).await.result
     }
 

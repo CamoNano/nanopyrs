@@ -20,11 +20,11 @@ Currently, only the following commands are officially supported: `account_balanc
 
 . . . but any other command can be implemented manually with the help of the `command()` method of `nanopyrs::rpc::Rpc`, and various functions in `nanopyrs::rpc::util`.
 
-### Stealth Accounts
+### Camo Accounts
 
-Stealth account functionality is enabled by the `stealth` feature, which is **disabled by default**.
+Camo account functionality is enabled by the `camo` feature, which is **disabled by default**.
 
-Note that stealth accounts are a **custom, experimental, and non-standard feature** of this library, and are generally not supported by wallets or the wider Nano ecosystem.
+Note that camo accounts are a **custom, experimental, and non-standard feature** of this library, and are generally not supported by wallets or the wider Nano ecosystem.
 
 ### Serde
 

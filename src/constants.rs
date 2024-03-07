@@ -33,29 +33,28 @@ pub mod epoch_signers {
     }
 }
 
-#[cfg(feature = "stealth")]
-mod stealth {
-    pub const STEALTH_ACCOUNT_PREFIX: &str = "stealth_";
+#[cfg(feature = "camo")]
+mod camo {
+    pub const CAMO_ACCOUNT_PREFIX: &str = "camo_";
     pub(crate) const ADDRESS_CHARS_SAMPLE_SIZE: usize = 8;
 
-    pub(crate) const STEALTH_PREFIX_LEN: usize = STEALTH_ACCOUNT_PREFIX.len();
-    pub(crate) const ADDRESS_CHARS_SAMPLE_END: usize =
-        STEALTH_PREFIX_LEN + ADDRESS_CHARS_SAMPLE_SIZE;
+    pub(crate) const CAMO_PREFIX_LEN: usize = CAMO_ACCOUNT_PREFIX.len();
+    pub(crate) const ADDRESS_CHARS_SAMPLE_END: usize = CAMO_PREFIX_LEN + ADDRESS_CHARS_SAMPLE_SIZE;
 
-    /// The highest supported protocol version for `stealth_` accounts.
+    /// The highest supported protocol version for `camo_` accounts.
     ///
     /// Currently, only version `1` is supported.
-    pub const HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION: u8 = 1;
-    // The stealth account protocol has up to 8 versions.
+    pub const HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION: u8 = 1;
+    // The camo account protocol has up to 8 versions.
     // Support for each version in an address is signaled by toggling bits in 1 byte, encoded in the address.
     // This improves backwards compatability, while still allowing new features to be added.
-    pub(crate) const HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 8;
-    pub(crate) const LOWEST_POSSIBLE_STEALTH_PROTOCOL_VERSION: u8 = 1;
+    pub(crate) const HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION: u8 = 8;
+    pub(crate) const LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION: u8 = 1;
 
     /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;
     /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const VIEW_CONSTANTS_X_INDEX: u32 = 1;
 }
-#[cfg(feature = "stealth")]
-pub use stealth::*;
+#[cfg(feature = "camo")]
+pub use camo::*;

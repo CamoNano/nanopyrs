@@ -19,8 +19,8 @@ pub use error::NanoError;
 pub use secrets::{Scalar, SecretBytes};
 pub use signature::Signature;
 
-#[cfg(feature = "stealth")]
-pub mod stealth;
+#[cfg(feature = "camo")]
+pub mod camo;
 
 #[cfg(feature = "rpc")]
 pub mod rpc;

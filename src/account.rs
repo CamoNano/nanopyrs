@@ -95,7 +95,7 @@ impl Account {
         Account::try_from(compressed)
     }
 
-    #[cfg(feature = "stealth")]
+    #[cfg(feature = "camo")]
     pub(crate) fn from_both_points(
         point: &EdwardsPoint,
         compressed: &CompressedEdwardsY,

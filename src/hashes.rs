@@ -5,35 +5,35 @@ use blake2::{
 };
 use curve25519_dalek::scalar::{clamp_integer, Scalar as RawScalar};
 
-#[cfg(feature = "stealth")]
+#[cfg(feature = "camo")]
 use crate::constants::{SPEND_CONSTANTS_X_INDEX, VIEW_CONSTANTS_X_INDEX};
 
 pub mod hazmat {
     pub use crate::nanopy::{get_account_scalar, get_account_seed};
 
-    #[cfg(feature = "stealth")]
+    #[cfg(feature = "camo")]
     use super::*;
-    #[cfg(feature = "stealth")]
+    #[cfg(feature = "camo")]
     pub fn get_category_seed(seed: &SecretBytes<32>, i: u32) -> SecretBytes<32> {
         blake2b256(&[&i.to_be_bytes(), seed.as_slice()].concat())
     }
 }
-#[cfg(feature = "stealth")]
+#[cfg(feature = "camo")]
 use hazmat::get_category_seed;
 
 /// Returns the wallet's master spend seed.
 ///
 /// Equivalent to `hazmat::get_category_seed(seed, SPEND_CONSTANTS_X_INDEX)`
-#[cfg(feature = "stealth")]
-pub fn get_stealth_spend_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
+#[cfg(feature = "camo")]
+pub fn get_camo_spend_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
     get_category_seed(master_seed, SPEND_CONSTANTS_X_INDEX)
 }
 
 /// Returns the wallet's master view seed.
 ///
 /// Equivalent to `hazmat::get_category_seed(seed, VIEW_CONSTANTS_X_INDEX)`\
-#[cfg(feature = "stealth")]
-pub fn get_stealth_view_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
+#[cfg(feature = "camo")]
+pub fn get_camo_view_seed(master_seed: &SecretBytes<32>) -> SecretBytes<32> {
     get_category_seed(master_seed, VIEW_CONSTANTS_X_INDEX)
 }
 

@@ -5,18 +5,18 @@ use zeroize::Zeroize;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-/// Decode `StealthAccountVersions` from the compact `u8` representation.
+/// Decode `CamoVersions` from the compact `u8` representation.
 ///
 /// You propably want `versions!()` instead.
 #[macro_export]
 macro_rules! version_bits {
     ( $version_bits: expr ) => {{
-        use $crate::stealth::StealthAccountVersions;
-        StealthAccountVersions::decode_from_bits($version_bits)
+        use $crate::camo::CamoVersions;
+        CamoVersions::decode_from_bits($version_bits)
     }};
 }
 
-/// Create `StealthAccountVersions` with all of the given versions enabled.
+/// Create `CamoVersions` with all of the given versions enabled.
 /// Versions which are not supported by this software will be ignored.
 ///
 /// Note that currently, only version `1` is supported.
@@ -24,8 +24,8 @@ macro_rules! version_bits {
 macro_rules! versions {
     ( $($version: expr),* ) => {
         {
-            use $crate::stealth::StealthAccountVersions;
-            let mut version = StealthAccountVersions::empty();
+            use $crate::camo::CamoVersions;
+            let mut version = CamoVersions::empty();
             $(
                 version.enable_version($version);
             )*
@@ -35,11 +35,11 @@ macro_rules! versions {
 }
 
 fn all_possible_versions() -> RangeInclusive<u8> {
-    LOWEST_POSSIBLE_STEALTH_PROTOCOL_VERSION..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION
+    LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION..=HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION
 }
 
 fn all_supported_versions() -> RangeInclusive<u8> {
-    LOWEST_POSSIBLE_STEALTH_PROTOCOL_VERSION..=HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION
+    LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION..=HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION
 }
 
 fn is_possible_version(version: u8) -> bool {
@@ -50,33 +50,33 @@ fn is_supported_version(version: u8) -> bool {
     all_supported_versions().contains(&version)
 }
 
-/// Signals the version(s) which a `stealth_` account supports
+/// Signals the version(s) which a `camo_` account supports
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Zeroize)]
-pub struct StealthAccountVersions {
+pub struct CamoVersions {
     supported_versions: [bool; 8],
 }
-impl StealthAccountVersions {
-    /// Create `StealthAccountVersions` with no versions enabled
-    pub fn empty() -> StealthAccountVersions {
-        StealthAccountVersions::from([false; 8])
+impl CamoVersions {
+    /// Create `CamoVersions` with no versions enabled
+    pub fn empty() -> CamoVersions {
+        CamoVersions::from([false; 8])
     }
 
-    /// Create `StealthAccountVersions` with all of the given versions enabled.
+    /// Create `CamoVersions` with all of the given versions enabled.
     /// Versions which are not supported by this software will still be set.
-    pub fn new_signaling(versions: &[u8]) -> StealthAccountVersions {
-        let mut version = StealthAccountVersions::empty();
+    pub fn new_signaling(versions: &[u8]) -> CamoVersions {
+        let mut version = CamoVersions::empty();
         for i in versions {
             version.force_enable_version(*i);
         }
         version
     }
 
-    /// Create `StealthAccountVersions` with all of the given versions enabled.
+    /// Create `CamoVersions` with all of the given versions enabled.
     /// Versions which are not supported by this software will be ignored.
     ///
     /// Note that currently, only version `1` is supported.
-    pub fn new(versions: &[u8]) -> StealthAccountVersions {
-        let mut version = StealthAccountVersions::empty();
+    pub fn new(versions: &[u8]) -> CamoVersions {
+        let mut version = CamoVersions::empty();
         for i in versions {
             version.enable_version(*i);
         }
@@ -109,7 +109,7 @@ impl StealthAccountVersions {
         self.supported_versions[version as usize - 1] = false;
     }
 
-    /// Returns whether or not the given version is supported by the `stealth_` account **but** not necessarily supported by this software
+    /// Returns whether or not the given version is supported by the `camo_` account **but** not necessarily supported by this software
     pub fn signals_version(&self, version: u8) -> bool {
         if !is_possible_version(version) {
             return false;
@@ -117,7 +117,7 @@ impl StealthAccountVersions {
         self.supported_versions[version as usize - 1]
     }
 
-    /// Returns whether or not the given version is supported by the `stealth_` account **and** supported by this software
+    /// Returns whether or not the given version is supported by the `camo_` account **and** supported by this software
     pub fn supports_version(&self, version: u8) -> bool {
         if !is_supported_version(version) {
             return false;
@@ -125,28 +125,28 @@ impl StealthAccountVersions {
         self.signals_version(version)
     }
 
-    /// Returns the highest version that is supported by the `stealth_` account **but** not necessarily supported by this software
+    /// Returns the highest version that is supported by the `camo_` account **but** not necessarily supported by this software
     pub fn highest_signaled_version(&self) -> Option<u8> {
         all_possible_versions()
             .rev()
             .find(|&version| self.signals_version(version))
     }
 
-    /// Returns the highest version that is supported by the `stealth_` account **and** supported by this software
+    /// Returns the highest version that is supported by the `camo_` account **and** supported by this software
     pub fn highest_supported_version(&self) -> Option<u8> {
         all_possible_versions()
             .rev()
             .find(|&version| self.supports_version(version))
     }
 
-    /// Returns all versions that are supported by the `stealth_` account **but** not necessarily supported by this software
+    /// Returns all versions that are supported by the `camo_` account **but** not necessarily supported by this software
     pub fn all_signaled_versions(&self) -> Vec<u8> {
         all_possible_versions()
             .filter(|version| self.signals_version(*version))
             .collect()
     }
 
-    /// Returns all versions that are supported by the `stealth_` account **and** supported by this software
+    /// Returns all versions that are supported by the `camo_` account **and** supported by this software
     pub fn all_supported_versions(&self) -> Vec<u8> {
         all_possible_versions()
             .filter(|version| self.supports_version(*version))
@@ -165,18 +165,18 @@ impl StealthAccountVersions {
     }
 
     /// Decode the version support from a `u8`
-    pub fn decode_from_bits(bits: u8) -> StealthAccountVersions {
+    pub fn decode_from_bits(bits: u8) -> CamoVersions {
         let mut versions = [false; 8];
         for (i, version) in versions.iter_mut().enumerate() {
             if bits & (1 << i) != 0 {
                 *version = true;
             };
         }
-        StealthAccountVersions::from(versions)
+        CamoVersions::from(versions)
     }
 }
 #[cfg(feature = "serde")]
-impl Serialize for StealthAccountVersions {
+impl Serialize for CamoVersions {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -185,27 +185,27 @@ impl Serialize for StealthAccountVersions {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for StealthAccountVersions {
+impl<'de> Deserialize<'de> for CamoVersions {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Ok(StealthAccountVersions::decode_from_bits(u8::deserialize(
+        Ok(CamoVersions::decode_from_bits(u8::deserialize(
             deserializer,
         )?))
     }
 }
-auto_from_impl!(From: [bool; 8] => StealthAccountVersions);
-auto_from_impl!(From: StealthAccountVersions => [bool; 8]);
-impl From<&[bool; 8]> for StealthAccountVersions {
+auto_from_impl!(From: [bool; 8] => CamoVersions);
+auto_from_impl!(From: CamoVersions => [bool; 8]);
+impl From<&[bool; 8]> for CamoVersions {
     fn from(value: &[bool; 8]) -> Self {
-        StealthAccountVersions {
+        CamoVersions {
             supported_versions: *value,
         }
     }
 }
-impl From<&StealthAccountVersions> for [bool; 8] {
-    fn from(value: &StealthAccountVersions) -> Self {
+impl From<&CamoVersions> for [bool; 8] {
+    fn from(value: &CamoVersions) -> Self {
         value.supported_versions
     }
 }
@@ -214,13 +214,13 @@ impl From<&StealthAccountVersions> for [bool; 8] {
 mod tests {
     use super::*;
 
-    const TEST_VERSIONS_1: StealthAccountVersions = StealthAccountVersions {
+    const TEST_VERSIONS_1: CamoVersions = CamoVersions {
         supported_versions: [true, false, true, false, true, true, false, false],
     };
-    const TEST_VERSIONS_2: StealthAccountVersions = StealthAccountVersions {
+    const TEST_VERSIONS_2: CamoVersions = CamoVersions {
         supported_versions: [false, true, false, false, true, true, false, true],
     };
-    const TEST_VERSIONS_3: StealthAccountVersions = StealthAccountVersions {
+    const TEST_VERSIONS_3: CamoVersions = CamoVersions {
         supported_versions: [true, true, true, true, true, true, true, true],
     };
 
@@ -229,10 +229,10 @@ mod tests {
         assert!(!is_possible_version(0));
         assert!(!is_supported_version(0));
 
-        for i in 1..=HIGHEST_POSSIBLE_STEALTH_PROTOCOL_VERSION {
+        for i in 1..=HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION {
             assert!(is_possible_version(i));
         }
-        for i in 1..=HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION {
+        for i in 1..=HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION {
             assert!(is_supported_version(i));
         }
 
@@ -277,21 +277,18 @@ mod tests {
 
     #[test]
     fn from_bits() {
-        let versions_1 = versions!(HIGHEST_KNOWN_STEALTH_PROTOCOL_VERSION);
-        let versions_2 = StealthAccountVersions::decode_from_bits(versions_1.encode_to_bits());
+        let versions_1 = versions!(HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION);
+        let versions_2 = CamoVersions::decode_from_bits(versions_1.encode_to_bits());
         assert!(versions_1 == versions_2);
 
         assert!(
-            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_1.encode_to_bits())
-                == TEST_VERSIONS_1
+            CamoVersions::decode_from_bits(TEST_VERSIONS_1.encode_to_bits()) == TEST_VERSIONS_1
         );
         assert!(
-            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_2.encode_to_bits())
-                == TEST_VERSIONS_2
+            CamoVersions::decode_from_bits(TEST_VERSIONS_2.encode_to_bits()) == TEST_VERSIONS_2
         );
         assert!(
-            StealthAccountVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits())
-                == TEST_VERSIONS_3
+            CamoVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits()) == TEST_VERSIONS_3
         );
     }
 }

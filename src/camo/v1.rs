@@ -1,12 +1,11 @@
 use super::{
-    get_standard_index, stealth_address_tests, AutoTestUtils, StealthAccountTrait,
-    StealthAccountVersions, StealthKeysTrait, StealthViewKeysTrait,
+    camo_address_tests, get_standard_index, AutoTestUtils, CamoAccountTrait, CamoKeysTrait,
+    CamoVersions, CamoViewKeysTrait,
 };
 use crate::{
     auto_from_impl, base32,
     hashes::{
-        blake2b512, blake2b_checksum, blake2b_scalar, get_stealth_spend_seed,
-        get_stealth_view_seed,
+        blake2b512, blake2b_checksum, blake2b_scalar, get_camo_spend_seed, get_camo_view_seed,
         hazmat::{get_account_scalar, get_account_seed},
     },
     secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Block, Key,
@@ -36,10 +35,10 @@ fn get_partial_keys(view_seed: &SecretBytes<32>, i: u32) -> (Scalar, Scalar) {
 }
 
 fn points_to_account(
-    versions: StealthAccountVersions,
+    versions: CamoVersions,
     spend: EdwardsPoint,
     view: EdwardsPoint,
-) -> StealthAccountV1 {
+) -> CamoAccountV1 {
     let compressed_spend_key = spend.compress();
     let compressed_view_key = view.compress();
 
@@ -52,11 +51,11 @@ fn points_to_account(
     let mut checksum = blake2b_checksum(&data);
     checksum.reverse();
 
-    let mut account = "stealth_".to_string();
+    let mut account = "camo_".to_string();
     let data = [data.as_slice(), &checksum].concat();
     account.push_str(&base32::encode(&data));
 
-    StealthAccountV1 {
+    CamoAccountV1 {
         account,
         versions,
         compressed_spend_key,
@@ -66,7 +65,7 @@ fn points_to_account(
     }
 }
 
-fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, NanoError> {
+fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoError> {
     if account.len() != 120 {
         return Err(NanoError::InvalidAddressLength);
     }
@@ -85,7 +84,7 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, Nan
     let compressed_spend_key = try_compressed_from_slice(spend_key)?;
     let compressed_view_key = try_compressed_from_slice(view_key)?;
 
-    Ok(StealthAccountV1 {
+    Ok(CamoAccountV1 {
         account: account.to_string(),
         versions,
         compressed_spend_key,
@@ -97,24 +96,19 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, Nan
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct StealthKeysV1 {
-    versions: StealthAccountVersions,
+pub struct CamoKeysV1 {
+    versions: CamoVersions,
     private_spend: Scalar,
     private_view: Scalar,
 }
-impl StealthKeysTrait for StealthKeysV1 {
-    type ViewKeysType = StealthViewKeysV1;
-    type AccountType = StealthAccountV1;
+impl CamoKeysTrait for CamoKeysV1 {
+    type ViewKeysType = CamoViewKeysV1;
+    type AccountType = CamoAccountV1;
 
-    fn from_seed(
-        master_seed: &SecretBytes<32>,
-        i: u32,
-        versions: StealthAccountVersions,
-    ) -> StealthKeysV1 {
-        let master_spend = get_account_scalar(&get_stealth_spend_seed(master_seed), 0);
-        let (partial_spend, private_view) =
-            get_partial_keys(&get_stealth_view_seed(master_seed), i);
-        StealthKeysV1 {
+    fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: CamoVersions) -> CamoKeysV1 {
+        let master_spend = get_account_scalar(&get_camo_spend_seed(master_seed), 0);
+        let (partial_spend, private_view) = get_partial_keys(&get_camo_view_seed(master_seed), i);
+        CamoKeysV1 {
             versions,
             private_spend: master_spend + partial_spend,
             private_view,
@@ -123,7 +117,7 @@ impl StealthKeysTrait for StealthKeysV1 {
 
     fn to_view_keys(&self) -> Self::ViewKeysType {
         let spend = &self.private_spend * G;
-        StealthViewKeysV1 {
+        CamoViewKeysV1 {
             versions: self.versions,
             compressed_spend_key: spend.compress(),
             point_spend_key: spend,
@@ -131,7 +125,7 @@ impl StealthKeysTrait for StealthKeysV1 {
         }
     }
 
-    fn to_stealth_account(&self) -> Self::AccountType {
+    fn to_camo_account(&self) -> Self::AccountType {
         points_to_account(
             self.versions,
             &self.private_spend * G,
@@ -143,7 +137,7 @@ impl StealthKeysTrait for StealthKeysV1 {
         Key::from_scalar(self.private_spend.clone())
     }
 
-    fn get_versions(&self) -> StealthAccountVersions {
+    fn get_versions(&self) -> CamoVersions {
         self.versions
     }
 
@@ -161,24 +155,24 @@ impl StealthKeysTrait for StealthKeysV1 {
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct StealthViewKeysV1 {
-    versions: StealthAccountVersions,
+pub struct CamoViewKeysV1 {
+    versions: CamoVersions,
     compressed_spend_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
     private_view: Scalar,
 }
-impl StealthViewKeysTrait for StealthViewKeysV1 {
-    type AccountType = StealthAccountV1;
+impl CamoViewKeysTrait for CamoViewKeysV1 {
+    type AccountType = CamoAccountV1;
 
     fn from_seed(
         view_seed: &SecretBytes<32>,
         master_spend: EdwardsPoint,
         i: u32,
-        versions: StealthAccountVersions,
-    ) -> StealthViewKeysV1 {
+        versions: CamoVersions,
+    ) -> CamoViewKeysV1 {
         let (private_spend, private_view) = get_partial_keys(view_seed, i);
         let point_spend_key = master_spend + (private_spend * G);
-        StealthViewKeysV1 {
+        CamoViewKeysV1 {
             versions,
             compressed_spend_key: point_spend_key.compress(),
             point_spend_key,
@@ -186,7 +180,7 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
         }
     }
 
-    fn to_stealth_account(&self) -> StealthAccountV1 {
+    fn to_camo_account(&self) -> CamoAccountV1 {
         points_to_account(self.versions, self.point_spend_key, &self.private_view * G)
     }
 
@@ -194,7 +188,7 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
         Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
     }
 
-    fn get_versions(&self) -> StealthAccountVersions {
+    fn get_versions(&self) -> CamoVersions {
         self.versions
     }
 
@@ -211,11 +205,11 @@ impl StealthViewKeysTrait for StealthViewKeysV1 {
     }
 }
 
-auto_from_impl!(From: StealthViewKeysV1 => SecretBytes<65>);
-auto_from_impl!(TryFrom: SecretBytes<65> => StealthViewKeysV1);
+auto_from_impl!(From: CamoViewKeysV1 => SecretBytes<65>);
+auto_from_impl!(TryFrom: SecretBytes<65> => CamoViewKeysV1);
 
-impl From<&StealthViewKeysV1> for SecretBytes<65> {
-    fn from(value: &StealthViewKeysV1) -> Self {
+impl From<&CamoViewKeysV1> for SecretBytes<65> {
+    fn from(value: &CamoViewKeysV1) -> Self {
         let bytes: [u8; 65] = [
             [value.versions.encode_to_bits()].as_slice(),
             value.compressed_spend_key.as_bytes(),
@@ -227,18 +221,18 @@ impl From<&StealthViewKeysV1> for SecretBytes<65> {
         SecretBytes::from(bytes)
     }
 }
-impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
+impl TryFrom<&SecretBytes<65>> for CamoViewKeysV1 {
     type Error = NanoError;
 
     fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
         let bytes = value.as_ref();
 
-        let versions = StealthAccountVersions::decode_from_bits(bytes[0]);
+        let versions = CamoVersions::decode_from_bits(bytes[0]);
         let compressed_spend_key = try_compressed_from_slice(&bytes[1..33])?;
         let point_spend_key = try_point_from_slice(&bytes[1..33])?;
         let private_view = Scalar::from_canonical_bytes(bytes[33..].as_ref().try_into().unwrap())?;
 
-        Ok(StealthViewKeysV1 {
+        Ok(CamoViewKeysV1 {
             versions,
             compressed_spend_key,
             point_spend_key,
@@ -248,12 +242,12 @@ impl TryFrom<&SecretBytes<65>> for StealthViewKeysV1 {
 }
 
 #[cfg(feature = "serde")]
-impl Serialize for StealthViewKeysV1 {
+impl Serialize for CamoViewKeysV1 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        StealthViewKeysV1Serde {
+        CamoViewKeysV1Serde {
             versions: self.versions,
             point_spend_key: self.point_spend_key,
             private_view: self.private_view.clone(),
@@ -262,13 +256,13 @@ impl Serialize for StealthViewKeysV1 {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for StealthViewKeysV1 {
+impl<'de> Deserialize<'de> for CamoViewKeysV1 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let keys = StealthViewKeysV1Serde::deserialize(deserializer)?;
-        Ok(StealthViewKeysV1 {
+        let keys = CamoViewKeysV1Serde::deserialize(deserializer)?;
+        Ok(CamoViewKeysV1 {
             versions: keys.versions,
             compressed_spend_key: keys.point_spend_key.compress(),
             point_spend_key: keys.point_spend_key,
@@ -278,29 +272,29 @@ impl<'de> Deserialize<'de> for StealthViewKeysV1 {
 }
 #[cfg(feature = "serde")]
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
-struct StealthViewKeysV1Serde {
-    versions: StealthAccountVersions,
+struct CamoViewKeysV1Serde {
+    versions: CamoVersions,
     point_spend_key: EdwardsPoint,
     private_view: Scalar,
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct StealthAccountV1 {
+pub struct CamoAccountV1 {
     account: String,
-    versions: StealthAccountVersions,
+    versions: CamoVersions,
     compressed_spend_key: CompressedEdwardsY,
     compressed_view_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
     point_view_key: EdwardsPoint,
 }
-impl StealthAccountTrait for StealthAccountV1 {
-    type KeysType = StealthKeysV1;
+impl CamoAccountTrait for CamoAccountV1 {
+    type KeysType = CamoKeysV1;
 
-    fn from_keys(keys: Self::KeysType) -> StealthAccountV1 {
-        keys.to_stealth_account()
+    fn from_keys(keys: Self::KeysType) -> CamoAccountV1 {
+        keys.to_camo_account()
     }
 
-    fn from_data(account: &str, data: &[u8]) -> Result<StealthAccountV1, NanoError> {
+    fn from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoError> {
         account_from_data(account, data)
     }
 
@@ -308,7 +302,7 @@ impl StealthAccountTrait for StealthAccountV1 {
         Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
     }
 
-    fn get_versions(&self) -> StealthAccountVersions {
+    fn get_versions(&self) -> CamoVersions {
         self.versions
     }
 
@@ -324,19 +318,19 @@ impl StealthAccountTrait for StealthAccountV1 {
         self.derive_account(key, get_standard_index(block))
     }
 }
-impl Display for StealthAccountV1 {
+impl Display for CamoAccountV1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.account)
     }
 }
 
 #[cfg(feature = "serde")]
-impl Serialize for StealthAccountV1 {
+impl Serialize for CamoAccountV1 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        StealthAccountV1Serde {
+        CamoAccountV1Serde {
             versions: self.versions,
             point_spend_key: self.point_spend_key,
             point_view_key: self.point_view_key,
@@ -345,12 +339,12 @@ impl Serialize for StealthAccountV1 {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for StealthAccountV1 {
+impl<'de> Deserialize<'de> for CamoAccountV1 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let keys = StealthAccountV1Serde::deserialize(deserializer)?;
+        let keys = CamoAccountV1Serde::deserialize(deserializer)?;
         Ok(points_to_account(
             keys.versions,
             keys.point_spend_key,
@@ -360,14 +354,14 @@ impl<'de> Deserialize<'de> for StealthAccountV1 {
 }
 #[cfg(feature = "serde")]
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
-struct StealthAccountV1Serde {
-    versions: StealthAccountVersions,
+struct CamoAccountV1Serde {
+    versions: CamoVersions,
     point_spend_key: EdwardsPoint,
     point_view_key: EdwardsPoint,
 }
 
-stealth_address_tests!(
-    StealthKeysV1, StealthViewKeysV1, StealthAccountV1,
+camo_address_tests!(
+    CamoKeysV1, CamoViewKeysV1, CamoAccountV1,
     versions!(1),
-    "stealth_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
+    "camo_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

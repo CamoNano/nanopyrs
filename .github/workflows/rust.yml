@@ -17,8 +17,8 @@ jobs:
       run: cargo build --verbose
     - name: Build (features = rpc)
       run: cargo build --verbose --no-default-features --features rpc
-    - name: Build (features = stealth)
-      run: cargo build --verbose --no-default-features --features stealth
+    - name: Build (features = camo)
+      run: cargo build --verbose --no-default-features --features camo
     - name: Build (features = serde)
       run: cargo build --verbose --no-default-features --features serde
 

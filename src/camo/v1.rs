@@ -21,6 +21,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+const ADDRESS_LENGTH: usize = 117;
+
 fn ecdh(key_1: &Scalar, key_2: &EdwardsPoint) -> SecretBytes<32> {
     secret!((key_1 * key_2).compress().to_bytes())
 }
@@ -66,7 +68,7 @@ fn points_to_account(
 }
 
 fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoError> {
-    if account.len() != 120 {
+    if account.len() != ADDRESS_LENGTH {
         return Err(NanoError::InvalidAddressLength);
     }
 

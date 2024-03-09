@@ -77,10 +77,10 @@ If the sender's software does not support any of the signaled versions on a camo
 A Camo Nano address, $C$, is defined as the following. Let:
  * $C_{data} = v \mathbin\Vert K_{spend} \mathbin\Vert K_{view}$;
  * $C_{checksum} = H_{checksum}(C_{data})$;
- * $C = "camo\_" \mathbin\Vert {EncodeBase32}(C_{data} \mathbin\Vert C_{checksum})$;
+ * $C =$ "camo_" $\mathbin\Vert {EncodeBase32}(C_{data} \mathbin\Vert C_{checksum})$;
 
 To decode a Camo Nano address, $C$, reverse the above process:
- * Check $C_{[0:5]} \stackrel{?}{=} "camo\_"$;
+ * Check $C_{[0:5]} \stackrel{?}{=}$ "camo_";
  * Let $C_{raw} = {DecodeBase32}(C_{[5:]})$;
  * Parse $C_{raw}$ to obtain $C_{data}$ and $C_{checksum}$;
  * Check $C_{checksum} \stackrel{?}{=} H_{checksum}(C_{data})$;

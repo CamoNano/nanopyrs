@@ -1,33 +1,24 @@
-mod v1;
+mod addressv1;
+mod notification;
 mod version;
-
-// pub mod hazmat {
-//     pub mod v1 {
-//         pub use crate::camo::v1::*;
-//     }
-// }
 
 use crate::{
     auto_from_impl, base32,
     constants::{ADDRESS_CHARS_SAMPLE_END, CAMO_ACCOUNT_PREFIX, CAMO_PREFIX_LEN},
     version_bits, Account, Block, Key, NanoError, SecretBytes, Signature,
 };
+use addressv1::{CamoAccountType1, CamoKeysType1, CamoViewKeysType1};
 use curve25519_dalek::edwards::EdwardsPoint;
 use std::fmt::Display;
+use std::hash::Hash;
 use std::str::FromStr;
-use v1::{CamoAccountV1, CamoKeysV1, CamoViewKeysV1};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub use version::CamoVersions;
-
-/// Based on the hash of the notification block,
-/// return the "standard" index to derive the one-time account from using the shared seed.
-pub fn get_standard_index(notification_block: &Block) -> u32 {
-    u32::from_be_bytes(notification_block.hash()[..4].try_into().unwrap())
-}
+pub use notification::{Notification, NotificationV1};
+pub use version::{CamoVersion, CamoVersions};
 
 macro_rules! unwrap_enum {
     (CamoKeys, $instance:ident . $func:ident($($arg:expr),*) ) => {
@@ -47,48 +38,27 @@ macro_rules! unwrap_enum {
     };
 }
 
-pub(crate) trait CamoKeysTrait: Sized + Zeroize + PartialEq + Eq {
-    type ViewKeysType: CamoViewKeysTrait;
-    type AccountType: CamoAccountTrait;
-
-    fn from_seed(seed: &SecretBytes<32>, i: u32, versions: CamoVersions) -> Self;
-    fn to_view_keys(&self) -> Self::ViewKeysType;
-    fn to_camo_account(&self) -> Self::AccountType;
-
-    fn notification_key(&self) -> Key;
-    fn sign_message(&self, message: &[u8]) -> Signature {
-        self.notification_key().sign_message(message)
-    }
-    fn sign_block(&self, block: &Block) -> Signature {
-        self.sign_message(&block.hash())
-    }
-
-    fn get_versions(&self) -> CamoVersions;
-
-    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32>;
-    fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key;
-    fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
-        self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
-    }
-    fn derive_key_from_block(&self, block: &Block) -> Key;
-}
-
 /// The private keys of a `camo_` account
 #[repr(u32)]
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CamoKeys {
-    V1(Box<CamoKeysV1>) = 1,
+    V1(Box<CamoKeysType1>) = 1,
 }
 impl CamoKeys {
     /// Returns `None` if no supported version is given
     pub fn from_seed(seed: &SecretBytes<32>, i: u32, versions: CamoVersions) -> Option<CamoKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Some(CamoKeys::V1(Box::new(CamoKeysV1::from_seed(
-                seed, i, versions,
-            )))),
+            Some(CamoVersion::One | CamoVersion::Two) => Some(CamoKeys::V1(Box::new(
+                CamoKeysType1::from_seed(seed, i, versions),
+            ))),
             _ => None,
         }
+    }
+
+    /// Get the camo protocol versions that this address supports
+    pub fn camo_versions(&self) -> CamoVersions {
+        unwrap_enum!(CamoKeys, self.camo_versions())
     }
 
     pub fn to_view_keys(&self) -> CamoViewKeys {
@@ -99,71 +69,30 @@ impl CamoKeys {
         self.into()
     }
 
-    /// Key of the account for "notification" transactions to be sent to, if applicable
-    pub fn notification_key(&self) -> Key {
-        unwrap_enum!(CamoKeys, self.notification_key())
+    /// The private spend key of this camo address.
+    ///
+    /// Also the key of the account for "notification" transactions to be sent to, if applicable.
+    pub fn signer_key(&self) -> Key {
+        unwrap_enum!(CamoKeys, self.signer_key())
     }
 
-    /// Sign the `message` with the notification key, returning a `Signature`
+    /// Sign the `message` with the spend key, returning a `Signature`
     pub fn sign_message(&self, message: &[u8]) -> Signature {
-        self.notification_key().sign_message(message)
+        self.signer_key().sign_message(message)
     }
-    /// Sign the `block` with the notification key, returning a `Signature`
+    /// Sign the `block` with the spend key, returning a `Signature`
     pub fn sign_block(&self, block: &Block) -> Signature {
         self.sign_message(&block.hash())
     }
 
-    /// Get the versions which this `camo_` account supports
-    pub fn get_versions(&self) -> CamoVersions {
-        unwrap_enum!(CamoKeys, self.get_versions())
-    }
-
     /// Calculate the shared secret between this key and the given account.
-    pub fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
-        unwrap_enum!(CamoKeys, self.receiver_ecdh(sender_account))
+    pub fn receiver_ecdh(&self, notification: &Notification) -> SecretBytes<32> {
+        unwrap_enum!(CamoKeys, self.receiver_ecdh(notification))
     }
 
-    pub fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key {
-        unwrap_enum!(CamoKeys, self.derive_key_from_secret(secret, i))
+    pub fn derive_key(&self, secret: &SecretBytes<32>, i: u32) -> Key {
+        unwrap_enum!(CamoKeys, self.derive_key(secret, i))
     }
-
-    pub fn derive_key(&self, sender_account: &Account, i: u32) -> Key {
-        self.derive_key_from_secret(&self.receiver_ecdh(sender_account), i)
-    }
-
-    /// Derive a one-time key from the notification block.
-    ///
-    /// Similar to `derive_key()`, except a psuedo-random index is automatically calculated.
-    pub fn derive_key_from_block(&self, block: &Block) -> Key {
-        unwrap_enum!(CamoKeys, self.derive_key_from_block(block))
-    }
-}
-
-pub(crate) trait CamoViewKeysTrait: Sized + Zeroize + PartialEq + Eq {
-    type AccountType: CamoAccountTrait;
-
-    fn from_seed(
-        view_seed: &SecretBytes<32>,
-        master_spend: EdwardsPoint,
-        i: u32,
-        versions: CamoVersions,
-    ) -> Self;
-    fn to_camo_account(&self) -> Self::AccountType;
-
-    fn notification_account(&self) -> Account;
-    fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account()
-            .is_valid_signature(message, &signature)
-    }
-
-    fn get_versions(&self) -> CamoVersions;
-
-    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32>;
-    fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account;
-    fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
-        self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
-    }
-    fn derive_account_from_block(&self, block: &Block) -> Account;
 }
 
 /// The private view keys of a `camo_` account
@@ -171,7 +100,7 @@ pub(crate) trait CamoViewKeysTrait: Sized + Zeroize + PartialEq + Eq {
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CamoViewKeys {
-    V1(Box<CamoViewKeysV1>) = 1,
+    V1(Box<CamoViewKeysType1>) = 1,
 }
 impl CamoViewKeys {
     pub fn from_keys(keys: CamoKeys) -> CamoViewKeys {
@@ -186,14 +115,16 @@ impl CamoViewKeys {
         versions: CamoVersions,
     ) -> Option<CamoViewKeys> {
         match versions.highest_supported_version() {
-            Some(1) => Some(CamoViewKeys::V1(Box::new(CamoViewKeysV1::from_seed(
-                seed,
-                master_spend,
-                i,
-                versions,
-            )))),
+            Some(CamoVersion::One | CamoVersion::Two) => Some(CamoViewKeys::V1(Box::new(
+                CamoViewKeysType1::from_seed(seed, master_spend, i, versions),
+            ))),
             _ => None,
         }
+    }
+
+    /// Get the camo protocol versions that this address supports
+    pub fn camo_versions(&self) -> CamoVersions {
+        unwrap_enum!(CamoViewKeys, self.camo_versions())
     }
 
     pub fn to_camo_account(&self) -> CamoAccount {
@@ -208,40 +139,26 @@ impl CamoViewKeys {
         CamoViewKeys::try_from(value).ok()
     }
 
-    /// Account for "notification" transactions to be sent to, if applicable
-    pub fn notification_account(&self) -> Account {
-        unwrap_enum!(CamoViewKeys, self.notification_account())
+    /// The public spend key of this camo address.
+    ///
+    /// Also the account for "notification" transactions to be sent to, if applicable.
+    pub fn signer_account(&self) -> Account {
+        unwrap_enum!(CamoViewKeys, self.signer_account())
     }
 
     /// Check the validity of a signature made by the notification key
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account()
+        self.signer_account()
             .is_valid_signature(message, &signature)
     }
 
-    /// Get the versions which this `camo_` account supports
-    pub fn get_versions(&self) -> CamoVersions {
-        unwrap_enum!(CamoViewKeys, self.get_versions())
-    }
-
     /// Calculate the shared secret between this key and the given account.
-    pub fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
-        unwrap_enum!(CamoViewKeys, self.receiver_ecdh(sender_account))
+    pub fn receiver_ecdh(&self, notification: &Notification) -> SecretBytes<32> {
+        unwrap_enum!(CamoViewKeys, self.receiver_ecdh(notification))
     }
 
-    pub fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(CamoViewKeys, self.derive_account_from_secret(secret, i))
-    }
-
-    pub fn derive_account(&self, sender_account: &Account, i: u32) -> Account {
-        self.derive_account_from_secret(&self.receiver_ecdh(sender_account), i)
-    }
-
-    /// Derive a one-time account from the notification block.
-    ///
-    /// Similar to `derive_account()`, except a psuedo-random index is automatically calculated.
-    pub fn derive_account_from_block(&self, block: &Block) -> Account {
-        unwrap_enum!(CamoViewKeys, self.derive_account_from_block(block))
+    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
+        unwrap_enum!(CamoViewKeys, self.derive_account(secret, i))
     }
 }
 
@@ -266,12 +183,12 @@ impl TryFrom<&SecretBytes<65>> for CamoViewKeys {
     fn try_from(value: &SecretBytes<65>) -> Result<Self, ()> {
         let versions = CamoVersions::decode_from_bits(value.as_ref()[0]);
 
-        let value = match CamoViewKeysV1::try_from(value) {
+        let value = match CamoViewKeysType1::try_from(value) {
             Ok(value) => value,
             Err(_) => return Err(()),
         };
         match versions.highest_supported_version() {
-            Some(1) => Ok(CamoViewKeys::V1(Box::new(value))),
+            Some(CamoVersion::One | CamoVersion::Two) => Ok(CamoViewKeys::V1(Box::new(value))),
             _ => Err(()),
         }
     }
@@ -284,41 +201,12 @@ impl From<&CamoKeys> for CamoViewKeys {
     }
 }
 
-pub(crate) trait CamoAccountTrait: Sized + Zeroize + Display + PartialEq + Eq {
-    type KeysType: CamoKeysTrait;
-
-    fn from_keys(keys: Self::KeysType) -> Self;
-    fn from_data(account: &str, data: &[u8]) -> Result<Self, NanoError>;
-    fn from_str(account: &str) -> Result<Self, NanoError> {
-        let data = base32::decode(&account[CAMO_PREFIX_LEN..]).ok_or(NanoError::InvalidBase32)?;
-        Self::from_data(account, &data)
-    }
-
-    fn notification_account(&self) -> Account;
-    fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account()
-            .is_valid_signature(message, &signature)
-    }
-
-    fn get_versions(&self) -> CamoVersions;
-    fn is_valid(account: &str) -> bool {
-        Self::from_str(account).is_ok()
-    }
-
-    fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32>;
-    fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account;
-    fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
-        self.derive_account_from_secret(&self.sender_ecdh(sender_key), i)
-    }
-    fn derive_account_from_block(&self, block: &Block, sender_key: &Key) -> Account;
-}
-
 /// A `camo_` account
 #[repr(u32)]
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CamoAccount {
-    V1(Box<CamoAccountV1>) = 1,
+    V1(Box<CamoAccountType1>) = 1,
 }
 impl CamoAccount {
     pub fn from_keys(keys: CamoKeys) -> CamoAccount {
@@ -329,20 +217,22 @@ impl CamoAccount {
         keys.to_camo_account()
     }
 
-    /// Account for "notification" transactions to be sent to, if applicable
-    pub fn notification_account(&self) -> Account {
-        unwrap_enum!(CamoAccount, self.notification_account())
+    /// Get the camo protocol versions that this address supports
+    pub fn camo_versions(&self) -> CamoVersions {
+        unwrap_enum!(CamoAccount, self.camo_versions())
     }
 
-    /// Check the validity of a signature made by the notification key
+    /// The public spend key of this camo address.
+    ///
+    /// Also the account for "notification" transactions to be sent to, if applicable.
+    pub fn signer_account(&self) -> Account {
+        unwrap_enum!(CamoAccount, self.signer_account())
+    }
+
+    /// Check the validity of a signature made by the spend key of this camo address
     pub fn is_valid_signature(&self, message: &[u8], signature: Signature) -> bool {
-        self.notification_account()
+        self.signer_account()
             .is_valid_signature(message, &signature)
-    }
-
-    /// Get the versions which this `camo_` account supports
-    pub fn get_versions(&self) -> CamoVersions {
-        unwrap_enum!(CamoAccount, self.get_versions())
     }
 
     pub fn is_valid(account: &str) -> bool {
@@ -350,26 +240,16 @@ impl CamoAccount {
     }
 
     /// Calculate the shared secret between this account and the given key.
-    pub fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32> {
-        unwrap_enum!(CamoAccount, self.sender_ecdh(sender_key))
+    pub fn sender_ecdh(
+        &self,
+        sender_key: &Key,
+        sender_frontier: [u8; 32],
+    ) -> (SecretBytes<32>, Notification) {
+        unwrap_enum!(CamoAccount, self.sender_ecdh(sender_key, sender_frontier))
     }
 
-    pub fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(CamoAccount, self.derive_account_from_secret(secret, i))
-    }
-
-    pub fn derive_account(&self, sender_key: &Key, i: u32) -> Account {
-        self.derive_account_from_secret(&self.sender_ecdh(sender_key), i)
-    }
-
-    /// Derive a one-time account from the notification block.
-    ///
-    /// Similar to `derive_account()`, except a psuedo-random index is automatically calculated.
-    pub fn derive_account_from_block(&self, block: &Block, sender_key: &Key) -> Account {
-        unwrap_enum!(
-            CamoAccount,
-            self.derive_account_from_block(block, sender_key)
-        )
+    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
+        unwrap_enum!(CamoAccount, self.derive_account(secret, i))
     }
 }
 impl FromStr for CamoAccount {
@@ -386,7 +266,9 @@ impl FromStr for CamoAccount {
         let data = base32::decode(address_sample).ok_or(NanoError::InvalidBase32)?;
 
         match version_bits!(data[0]).highest_supported_version() {
-            Some(1) => Ok(CamoAccount::V1(Box::new(CamoAccountV1::from_str(s)?))),
+            Some(CamoVersion::One | CamoVersion::Two) => {
+                Ok(CamoAccount::V1(Box::new(CamoAccountType1::from_str(s)?)))
+            }
             _ => Err(NanoError::IncompatibleCamoVersions),
         }
     }
@@ -416,6 +298,19 @@ impl Display for CamoAccount {
     }
 }
 
+#[cfg(test)]
+mod protocol_docs_tests {
+    use super::*;
+
+    #[test]
+    fn example_camo_address() {
+        let expected = "camo_168be68tsxk1o8xferck89gj75kzk8fpbhote77ed1db975htuf11psgpwq9wabcxdjssycim6tidgkau48x6tgcqnsnxj341mamjpoy8umaz45c".parse().unwrap();
+        let seed = SecretBytes::from([200; 32]);
+        let keys = CamoKeys::from_seed(&seed, 5, version_bits!(0x01)).unwrap();
+        assert!(keys.to_camo_account() == expected);
+    }
+}
+
 pub(super) trait AutoTestUtils: Sized {
     fn unwrap(self) -> Self {
         self
@@ -442,24 +337,24 @@ macro_rules! camo_address_tests {
                 assert!(account.to_string() == $addr);
                 assert!(account == $account::from_str($addr).unwrap());
 
-                assert!($versions == key.get_versions());
-                assert!($versions == view_keys.get_versions());
-                assert!($versions == account.get_versions());
+                assert!($versions == key.camo_versions());
+                assert!($versions == view_keys.camo_versions());
+                assert!($versions == account.camo_versions());
             }
 
             #[test]
-            fn notification_account() {
+            fn signer_account() {
                 let seed = SecretBytes::from([0; 32]);
                 let keys = $keys::from_seed(&seed, 0, $versions).unwrap();
                 let view_keys = keys.to_view_keys();
                 let account = keys.to_view_keys();
 
-                let keys_account = keys.notification_key().to_account();
-                let view_keys_account = view_keys.notification_account();
-                let public_account = account.notification_account();
+                let keys_account = keys.signer_key().to_account();
+                let view_keys_account = view_keys.signer_account();
+                let signer_account = account.signer_account();
 
                 assert!(keys_account == view_keys_account);
-                assert!(keys_account == public_account);
+                assert!(keys_account == signer_account);
             }
 
             #[test]
@@ -467,15 +362,18 @@ macro_rules! camo_address_tests {
                 let seed = SecretBytes::from([127; 32]);
 
                 let sender_keys = Key::from_seed(&seed, 0);
-                let sender_account = sender_keys.to_account();
 
                 let recipient_keys = $keys::from_seed(&seed, 99, $versions).unwrap();
                 let recipient_view_keys = recipient_keys.to_view_keys();
                 let recipient_account = recipient_keys.to_camo_account();
 
-                let recipient_derived = recipient_keys.derive_key(&sender_account, 0).to_account();
-                let recipient_vk_derived = recipient_view_keys.derive_account(&sender_account, 0);
-                let sender_derived = recipient_account.derive_account(&sender_keys, 0);
+                let (sender_ecdh, notification) =
+                    recipient_account.sender_ecdh(&sender_keys, [50; 32]);
+                let sender_derived = recipient_account.derive_account(&sender_ecdh, 0);
+
+                let recipient_ecdh = recipient_keys.receiver_ecdh(&notification);
+                let recipient_derived = recipient_keys.derive_key(&recipient_ecdh, 0).to_account();
+                let recipient_vk_derived = recipient_view_keys.derive_account(&recipient_ecdh, 0);
 
                 assert!(recipient_derived == recipient_vk_derived);
                 assert!(recipient_derived == sender_derived);

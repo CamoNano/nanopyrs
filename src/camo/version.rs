@@ -1,5 +1,4 @@
-use crate::{auto_from_impl, constants::*};
-use std::ops::RangeInclusive;
+use crate::{auto_from_impl, constants::*, NanoError};
 use zeroize::Zeroize;
 
 #[cfg(feature = "serde")]
@@ -24,30 +23,101 @@ macro_rules! version_bits {
 macro_rules! versions {
     ( $($version: expr),* ) => {
         {
-            use $crate::camo::CamoVersions;
+            use $crate::camo::{CamoVersions};
             let mut version = CamoVersions::empty();
             $(
-                version.enable_version($version);
+                if let Ok(v) = $version.try_into() {
+                    version.enable_version(v);
+                }
             )*
             version
         }
     };
 }
 
-fn all_possible_versions() -> RangeInclusive<u8> {
-    LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION..=HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION
-}
-
-fn all_supported_versions() -> RangeInclusive<u8> {
-    LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION..=HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION
-}
-
 fn is_possible_version(version: u8) -> bool {
-    all_possible_versions().contains(&version)
+    match version.try_into() {
+        Ok(v) => ALL_POSSIBLE_VERSIONS.contains(&v),
+        Err(_) => false,
+    }
 }
 
 fn is_supported_version(version: u8) -> bool {
-    all_supported_versions().contains(&version)
+    match version.try_into() {
+        Ok(v) => ALL_SUPPORTED_VERSIONS.contains(&v),
+        Err(_) => false,
+    }
+}
+
+/// A Camo protocol version
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Zeroize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum CamoVersion {
+    /// Camo protocol version 1 (currently the only implemented version)
+    One = 1,
+    /// Camo protocol version 2 (unimplemented)
+    Two = 2,
+    /// Camo protocol version 3 (unimplemented)
+    Three = 3,
+    /// Camo protocol version 4 (unimplemented)
+    Four = 4,
+    /// Camo protocol version 5 (unimplemented)
+    Five = 5,
+    /// Camo protocol version 6 (unimplemented)
+    Six = 6,
+    /// Camo protocol version 7 (unimplemented)
+    Seven = 7,
+    /// Camo protocol version 8 (unimplemented)
+    Eight = 8,
+}
+impl CamoVersion {
+    pub fn as_u8(&self) -> u8 {
+        self.into()
+    }
+}
+auto_from_impl!(TryFrom: u8 => CamoVersion);
+auto_from_impl!(From: CamoVersion => u8);
+impl TryFrom<&u8> for CamoVersion {
+    type Error = NanoError;
+    fn try_from(value: &u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(CamoVersion::One),
+            2 => Ok(CamoVersion::Two),
+            3 => Ok(CamoVersion::Three),
+            4 => Ok(CamoVersion::Four),
+            5 => Ok(CamoVersion::Five),
+            6 => Ok(CamoVersion::Six),
+            7 => Ok(CamoVersion::Seven),
+            8 => Ok(CamoVersion::Eight),
+            _ => Err(NanoError::IncompatibleCamoVersions),
+        }
+    }
+}
+impl From<&CamoVersion> for u8 {
+    fn from(value: &CamoVersion) -> Self {
+        match value {
+            CamoVersion::One => 1,
+            CamoVersion::Two => 2,
+            CamoVersion::Three => 3,
+            CamoVersion::Four => 4,
+            CamoVersion::Five => 5,
+            CamoVersion::Six => 6,
+            CamoVersion::Seven => 7,
+            CamoVersion::Eight => 8,
+        }
+    }
+}
+impl PartialEq<u8> for CamoVersion {
+    fn eq(&self, other: &u8) -> bool {
+        let as_u8: u8 = self.into();
+        other == &as_u8
+    }
+}
+impl PartialEq<CamoVersion> for u8 {
+    fn eq(&self, other: &CamoVersion) -> bool {
+        other == self
+    }
 }
 
 /// Signals the version(s) which a `camo_` account supports
@@ -63,7 +133,7 @@ impl CamoVersions {
 
     /// Create `CamoVersions` with all of the given versions enabled.
     /// Versions which are not supported by this software will still be set.
-    pub fn new_signaling(versions: &[u8]) -> CamoVersions {
+    pub fn new_signaling(versions: &[CamoVersion]) -> CamoVersions {
         let mut version = CamoVersions::empty();
         for i in versions {
             version.force_enable_version(*i);
@@ -75,7 +145,7 @@ impl CamoVersions {
     /// Versions which are not supported by this software will be ignored.
     ///
     /// Note that currently, only version `1` is supported.
-    pub fn new(versions: &[u8]) -> CamoVersions {
+    pub fn new(versions: &[CamoVersion]) -> CamoVersions {
         let mut version = CamoVersions::empty();
         for i in versions {
             version.enable_version(*i);
@@ -84,17 +154,14 @@ impl CamoVersions {
     }
 
     /// Enable the given version, regardless of whether or not that version is supported by this software
-    pub fn force_enable_version(&mut self, version: u8) {
-        if !is_possible_version(version) {
-            return;
-        }
-        self.supported_versions[version as usize - 1] = true;
+    pub fn force_enable_version(&mut self, version: CamoVersion) {
+        self.supported_versions[version.as_u8() as usize - 1] = true;
     }
 
     /// Enable the given version, so long as that version is supported by this software.
     /// Returns whether or not the version was enabled.
-    pub fn enable_version(&mut self, version: u8) -> bool {
-        if !is_supported_version(version) {
+    pub fn enable_version(&mut self, version: CamoVersion) -> bool {
+        if !is_supported_version(version.as_u8()) {
             return false;
         }
         self.force_enable_version(version);
@@ -102,54 +169,59 @@ impl CamoVersions {
     }
 
     /// Disable the given version
-    pub fn disable_version(&mut self, version: u8) {
-        if !is_possible_version(version) {
-            return;
-        }
-        self.supported_versions[version as usize - 1] = false;
+    pub fn disable_version(&mut self, version: CamoVersion) {
+        self.supported_versions[version.as_u8() as usize - 1] = false;
     }
 
     /// Returns whether or not the given version is supported by the `camo_` account **but** not necessarily supported by this software
-    pub fn signals_version(&self, version: u8) -> bool {
-        if !is_possible_version(version) {
+    pub fn signals_version(&self, version: CamoVersion) -> bool {
+        if !is_possible_version(version.as_u8()) {
             return false;
         }
-        self.supported_versions[version as usize - 1]
+        self.supported_versions[version.as_u8() as usize - 1]
     }
 
     /// Returns whether or not the given version is supported by the `camo_` account **and** supported by this software
-    pub fn supports_version(&self, version: u8) -> bool {
-        if !is_supported_version(version) {
+    pub fn supports_version(&self, version: CamoVersion) -> bool {
+        if !is_supported_version(version.as_u8()) {
             return false;
         }
         self.signals_version(version)
     }
 
     /// Returns the highest version that is supported by the `camo_` account **but** not necessarily supported by this software
-    pub fn highest_signaled_version(&self) -> Option<u8> {
-        all_possible_versions()
+    pub fn highest_signaled_version(&self) -> Option<CamoVersion> {
+        ALL_POSSIBLE_VERSIONS
+            .iter()
             .rev()
-            .find(|&version| self.signals_version(version))
+            .find(|&&version| self.signals_version(version))
+            .copied()
     }
 
     /// Returns the highest version that is supported by the `camo_` account **and** supported by this software
-    pub fn highest_supported_version(&self) -> Option<u8> {
-        all_possible_versions()
+    pub fn highest_supported_version(&self) -> Option<CamoVersion> {
+        ALL_POSSIBLE_VERSIONS
+            .iter()
             .rev()
-            .find(|&version| self.supports_version(version))
+            .find(|&&version| self.supports_version(version))
+            .copied()
     }
 
     /// Returns all versions that are supported by the `camo_` account **but** not necessarily supported by this software
-    pub fn all_signaled_versions(&self) -> Vec<u8> {
-        all_possible_versions()
-            .filter(|version| self.signals_version(*version))
+    pub fn all_signaled_versions(&self) -> Vec<CamoVersion> {
+        ALL_POSSIBLE_VERSIONS
+            .iter()
+            .filter(|&&version| self.signals_version(version))
+            .copied()
             .collect()
     }
 
     /// Returns all versions that are supported by the `camo_` account **and** supported by this software
-    pub fn all_supported_versions(&self) -> Vec<u8> {
-        all_possible_versions()
-            .filter(|version| self.supports_version(*version))
+    pub fn all_supported_versions(&self) -> Vec<CamoVersion> {
+        ALL_POSSIBLE_VERSIONS
+            .iter()
+            .filter(|&&version| self.supports_version(version))
+            .copied()
             .collect()
     }
 
@@ -213,6 +285,7 @@ impl From<&CamoVersions> for [bool; 8] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION;
 
     const TEST_VERSIONS_1: CamoVersions = CamoVersions {
         supported_versions: [true, false, true, false, true, true, false, false],
@@ -226,32 +299,32 @@ mod tests {
 
     #[test]
     fn valid_versions() {
-        assert!(!is_possible_version(0));
-        assert!(!is_supported_version(0));
+        assert!(!is_possible_version(0.try_into().unwrap()));
+        assert!(!is_supported_version(0.try_into().unwrap()));
 
-        for i in 1..=HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION {
-            assert!(is_possible_version(i));
+        for i in super::ALL_POSSIBLE_VERSIONS {
+            assert!(is_possible_version(i.as_u8()));
         }
-        for i in 1..=HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION {
-            assert!(is_supported_version(i));
+        for i in super::ALL_SUPPORTED_VERSIONS {
+            assert!(is_supported_version(i.as_u8()));
         }
 
-        assert!(!is_possible_version(9));
-        assert!(!is_supported_version(9));
+        assert!(!is_possible_version(9.try_into().unwrap()));
+        assert!(!is_supported_version(9.try_into().unwrap()));
     }
 
     #[test]
     fn highest_signaled_version() {
-        assert!(TEST_VERSIONS_1.highest_signaled_version() == Some(6));
-        assert!(TEST_VERSIONS_2.highest_signaled_version() == Some(8));
-        assert!(TEST_VERSIONS_3.highest_signaled_version() == Some(8));
+        assert!(TEST_VERSIONS_1.highest_signaled_version() == Some(6.try_into().unwrap()));
+        assert!(TEST_VERSIONS_2.highest_signaled_version() == Some(8.try_into().unwrap()));
+        assert!(TEST_VERSIONS_3.highest_signaled_version() == Some(8.try_into().unwrap()));
     }
 
     #[test]
     fn highest_supported_version() {
-        assert!(TEST_VERSIONS_1.highest_supported_version() == Some(1));
+        assert!(TEST_VERSIONS_1.highest_supported_version() == Some(1.try_into().unwrap()));
         assert!(TEST_VERSIONS_2.highest_supported_version().is_none());
-        assert!(TEST_VERSIONS_3.highest_supported_version() == Some(1));
+        assert!(TEST_VERSIONS_3.highest_supported_version() == Some(1.try_into().unwrap()));
     }
 
     #[test]

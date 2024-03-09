@@ -141,6 +141,8 @@ impl<'de> Deserialize<'de> for Account {
 
 auto_from_impl!(FromStr: Account);
 auto_from_impl!(From: Account => String);
+auto_from_impl!(From: Account => EdwardsPoint);
+auto_from_impl!(From: Account => CompressedEdwardsY);
 auto_from_impl!(From: Key => Account);
 auto_from_impl!(From: EdwardsPoint => Account);
 auto_from_impl!(TryFrom: String => Account);
@@ -208,6 +210,16 @@ impl TryFrom<&[u8; 32]> for Account {
 impl From<&Account> for String {
     fn from(val: &Account) -> Self {
         val.to_string()
+    }
+}
+impl From<&Account> for EdwardsPoint {
+    fn from(val: &Account) -> Self {
+        val.point
+    }
+}
+impl From<&Account> for CompressedEdwardsY {
+    fn from(val: &Account) -> Self {
+        val.compressed
     }
 }
 #[cfg(feature = "rpc")]

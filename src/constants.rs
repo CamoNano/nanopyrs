@@ -35,6 +35,8 @@ pub mod epoch_signers {
 
 #[cfg(feature = "camo")]
 mod camo {
+    use crate::camo::CamoVersion;
+
     pub const CAMO_ACCOUNT_PREFIX: &str = "camo_";
     pub(crate) const ADDRESS_CHARS_SAMPLE_SIZE: usize = 8;
 
@@ -45,11 +47,19 @@ mod camo {
     ///
     /// Currently, only version `1` is supported.
     pub const HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION: u8 = 1;
-    // The camo account protocol has up to 8 versions.
-    // Support for each version in an address is signaled by toggling bits in 1 byte, encoded in the address.
-    // This improves backwards compatability, while still allowing new features to be added.
-    pub(crate) const HIGHEST_POSSIBLE_CAMO_PROTOCOL_VERSION: u8 = 8;
-    pub(crate) const LOWEST_POSSIBLE_CAMO_PROTOCOL_VERSION: u8 = 1;
+
+    pub(crate) const ALL_POSSIBLE_VERSIONS: &[CamoVersion] = &[
+        CamoVersion::One,
+        CamoVersion::Two,
+        CamoVersion::Three,
+        CamoVersion::Four,
+        CamoVersion::Five,
+        CamoVersion::Six,
+        CamoVersion::Seven,
+        CamoVersion::Eight,
+    ];
+
+    pub(crate) const ALL_SUPPORTED_VERSIONS: &[CamoVersion] = &[CamoVersion::One];
 
     /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;

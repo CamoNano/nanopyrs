@@ -1,6 +1,5 @@
 use super::{
-    camo_address_tests, get_standard_index, AutoTestUtils, CamoAccountTrait, CamoKeysTrait,
-    CamoVersions, CamoViewKeysTrait,
+    camo_address_tests, AutoTestUtils, CamoVersion, CamoVersions, Notification, CAMO_PREFIX_LEN,
 };
 use crate::{
     auto_from_impl, base32,
@@ -8,14 +7,15 @@ use crate::{
         blake2b512, blake2b_checksum, blake2b_scalar, get_camo_spend_seed, get_camo_view_seed,
         hazmat::{get_account_scalar, get_account_seed},
     },
-    secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Block, Key,
-    NanoError, Scalar, SecretBytes,
+    secret, try_compressed_from_slice, try_point_from_slice, version_bits, Account, Key, NanoError,
+    Scalar, SecretBytes,
 };
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G,
     edwards::{CompressedEdwardsY, EdwardsPoint},
 };
 use std::fmt::Display;
+use std::hash::Hash;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
@@ -40,7 +40,7 @@ fn points_to_account(
     versions: CamoVersions,
     spend: EdwardsPoint,
     view: EdwardsPoint,
-) -> CamoAccountV1 {
+) -> CamoAccountType1 {
     let compressed_spend_key = spend.compress();
     let compressed_view_key = view.compress();
 
@@ -57,7 +57,7 @@ fn points_to_account(
     let data = [data.as_slice(), &checksum].concat();
     account.push_str(&base32::encode(&data));
 
-    CamoAccountV1 {
+    CamoAccountType1 {
         account,
         versions,
         compressed_spend_key,
@@ -67,7 +67,7 @@ fn points_to_account(
     }
 }
 
-fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoError> {
+fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountType1, NanoError> {
     if account.len() != ADDRESS_LENGTH {
         return Err(NanoError::InvalidAddressLength);
     }
@@ -86,7 +86,7 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoEr
     let compressed_spend_key = try_compressed_from_slice(spend_key)?;
     let compressed_view_key = try_compressed_from_slice(view_key)?;
 
-    Ok(CamoAccountV1 {
+    Ok(CamoAccountType1 {
         account: account.to_string(),
         versions,
         compressed_spend_key,
@@ -98,28 +98,33 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoEr
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct CamoKeysV1 {
+pub struct CamoKeysType1 {
     versions: CamoVersions,
     private_spend: Scalar,
     private_view: Scalar,
 }
-impl CamoKeysTrait for CamoKeysV1 {
-    type ViewKeysType = CamoViewKeysV1;
-    type AccountType = CamoAccountV1;
-
-    fn from_seed(master_seed: &SecretBytes<32>, i: u32, versions: CamoVersions) -> CamoKeysV1 {
+impl CamoKeysType1 {
+    pub fn from_seed(
+        master_seed: &SecretBytes<32>,
+        i: u32,
+        versions: CamoVersions,
+    ) -> CamoKeysType1 {
         let master_spend = get_account_scalar(&get_camo_spend_seed(master_seed), 0);
         let (partial_spend, private_view) = get_partial_keys(&get_camo_view_seed(master_seed), i);
-        CamoKeysV1 {
+        CamoKeysType1 {
             versions,
             private_spend: master_spend + partial_spend,
             private_view,
         }
     }
 
-    fn to_view_keys(&self) -> Self::ViewKeysType {
+    pub fn camo_versions(&self) -> CamoVersions {
+        self.versions
+    }
+
+    pub fn to_view_keys(&self) -> CamoViewKeysType1 {
         let spend = &self.private_spend * G;
-        CamoViewKeysV1 {
+        CamoViewKeysType1 {
             versions: self.versions,
             compressed_spend_key: spend.compress(),
             point_spend_key: spend,
@@ -127,7 +132,7 @@ impl CamoKeysTrait for CamoKeysV1 {
         }
     }
 
-    fn to_camo_account(&self) -> Self::AccountType {
+    pub fn to_camo_account(&self) -> CamoAccountType1 {
         points_to_account(
             self.versions,
             &self.private_spend * G,
@@ -135,46 +140,39 @@ impl CamoKeysTrait for CamoKeysV1 {
         )
     }
 
-    fn notification_key(&self) -> Key {
+    pub fn signer_key(&self) -> Key {
         Key::from_scalar(self.private_spend.clone())
     }
 
-    fn get_versions(&self) -> CamoVersions {
-        self.versions
+    pub fn receiver_ecdh(&self, notification: &Notification) -> SecretBytes<32> {
+        let point = match notification {
+            Notification::V1(v1) => v1.representative_payload.point,
+        };
+        ecdh(&self.private_view, &point)
     }
 
-    fn receiver_ecdh(&self, sender_account: &Account) -> SecretBytes<32> {
-        ecdh(&self.private_view, &sender_account.point)
-    }
-
-    fn derive_key_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Key {
+    pub fn derive_key(&self, secret: &SecretBytes<32>, i: u32) -> Key {
         Key::from(&self.private_spend + get_account_scalar(secret, i))
-    }
-
-    fn derive_key_from_block(&self, block: &Block) -> Key {
-        self.derive_key(&block.account, get_standard_index(block))
     }
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct CamoViewKeysV1 {
+pub struct CamoViewKeysType1 {
     versions: CamoVersions,
     compressed_spend_key: CompressedEdwardsY,
     point_spend_key: EdwardsPoint,
     private_view: Scalar,
 }
-impl CamoViewKeysTrait for CamoViewKeysV1 {
-    type AccountType = CamoAccountV1;
-
-    fn from_seed(
+impl CamoViewKeysType1 {
+    pub fn from_seed(
         view_seed: &SecretBytes<32>,
         master_spend: EdwardsPoint,
         i: u32,
         versions: CamoVersions,
-    ) -> CamoViewKeysV1 {
+    ) -> CamoViewKeysType1 {
         let (private_spend, private_view) = get_partial_keys(view_seed, i);
         let point_spend_key = master_spend + (private_spend * G);
-        CamoViewKeysV1 {
+        CamoViewKeysType1 {
             versions,
             compressed_spend_key: point_spend_key.compress(),
             point_spend_key,
@@ -182,36 +180,35 @@ impl CamoViewKeysTrait for CamoViewKeysV1 {
         }
     }
 
-    fn to_camo_account(&self) -> CamoAccountV1 {
-        points_to_account(self.versions, self.point_spend_key, &self.private_view * G)
-    }
-
-    fn notification_account(&self) -> Account {
-        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
-    }
-
-    fn get_versions(&self) -> CamoVersions {
+    pub fn camo_versions(&self) -> CamoVersions {
         self.versions
     }
 
-    fn receiver_ecdh(&self, sender_key: &Account) -> SecretBytes<32> {
-        ecdh(&self.private_view, &sender_key.point)
+    pub fn to_camo_account(&self) -> CamoAccountType1 {
+        points_to_account(self.versions, self.point_spend_key, &self.private_view * G)
     }
 
-    fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
+    pub fn signer_account(&self) -> Account {
+        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
+    }
+
+    pub fn receiver_ecdh(&self, notification: &Notification) -> SecretBytes<32> {
+        let point = match notification {
+            Notification::V1(v1) => v1.representative_payload.point,
+        };
+        ecdh(&self.private_view, &point)
+    }
+
+    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
         Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
-    }
-
-    fn derive_account_from_block(&self, block: &Block) -> Account {
-        self.derive_account(&block.account, get_standard_index(block))
     }
 }
 
-auto_from_impl!(From: CamoViewKeysV1 => SecretBytes<65>);
-auto_from_impl!(TryFrom: SecretBytes<65> => CamoViewKeysV1);
+auto_from_impl!(From: CamoViewKeysType1 => SecretBytes<65>);
+auto_from_impl!(TryFrom: SecretBytes<65> => CamoViewKeysType1);
 
-impl From<&CamoViewKeysV1> for SecretBytes<65> {
-    fn from(value: &CamoViewKeysV1) -> Self {
+impl From<&CamoViewKeysType1> for SecretBytes<65> {
+    fn from(value: &CamoViewKeysType1) -> Self {
         let bytes: [u8; 65] = [
             [value.versions.encode_to_bits()].as_slice(),
             value.compressed_spend_key.as_bytes(),
@@ -223,7 +220,7 @@ impl From<&CamoViewKeysV1> for SecretBytes<65> {
         SecretBytes::from(bytes)
     }
 }
-impl TryFrom<&SecretBytes<65>> for CamoViewKeysV1 {
+impl TryFrom<&SecretBytes<65>> for CamoViewKeysType1 {
     type Error = NanoError;
 
     fn try_from(value: &SecretBytes<65>) -> Result<Self, NanoError> {
@@ -234,7 +231,7 @@ impl TryFrom<&SecretBytes<65>> for CamoViewKeysV1 {
         let point_spend_key = try_point_from_slice(&bytes[1..33])?;
         let private_view = Scalar::from_canonical_bytes(bytes[33..].as_ref().try_into().unwrap())?;
 
-        Ok(CamoViewKeysV1 {
+        Ok(CamoViewKeysType1 {
             versions,
             compressed_spend_key,
             point_spend_key,
@@ -244,12 +241,12 @@ impl TryFrom<&SecretBytes<65>> for CamoViewKeysV1 {
 }
 
 #[cfg(feature = "serde")]
-impl Serialize for CamoViewKeysV1 {
+impl Serialize for CamoViewKeysType1 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        CamoViewKeysV1Serde {
+        CamoViewKeysType1Serde {
             versions: self.versions,
             point_spend_key: self.point_spend_key,
             private_view: self.private_view.clone(),
@@ -258,13 +255,13 @@ impl Serialize for CamoViewKeysV1 {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for CamoViewKeysV1 {
+impl<'de> Deserialize<'de> for CamoViewKeysType1 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let keys = CamoViewKeysV1Serde::deserialize(deserializer)?;
-        Ok(CamoViewKeysV1 {
+        let keys = CamoViewKeysType1Serde::deserialize(deserializer)?;
+        Ok(CamoViewKeysType1 {
             versions: keys.versions,
             compressed_spend_key: keys.point_spend_key.compress(),
             point_spend_key: keys.point_spend_key,
@@ -274,14 +271,14 @@ impl<'de> Deserialize<'de> for CamoViewKeysV1 {
 }
 #[cfg(feature = "serde")]
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
-struct CamoViewKeysV1Serde {
+struct CamoViewKeysType1Serde {
     versions: CamoVersions,
     point_spend_key: EdwardsPoint,
     private_view: Scalar,
 }
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
-pub struct CamoAccountV1 {
+pub struct CamoAccountType1 {
     account: String,
     versions: CamoVersions,
     compressed_spend_key: CompressedEdwardsY,
@@ -289,50 +286,70 @@ pub struct CamoAccountV1 {
     point_spend_key: EdwardsPoint,
     point_view_key: EdwardsPoint,
 }
-impl CamoAccountTrait for CamoAccountV1 {
-    type KeysType = CamoKeysV1;
-
-    fn from_keys(keys: Self::KeysType) -> CamoAccountV1 {
-        keys.to_camo_account()
-    }
-
-    fn from_data(account: &str, data: &[u8]) -> Result<CamoAccountV1, NanoError> {
+impl CamoAccountType1 {
+    pub fn from_data(account: &str, data: &[u8]) -> Result<CamoAccountType1, NanoError> {
         account_from_data(account, data)
     }
 
-    fn notification_account(&self) -> Account {
-        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
+    pub fn from_str(account: &str) -> Result<Self, NanoError> {
+        let data = base32::decode(&account[CAMO_PREFIX_LEN..]).ok_or(NanoError::InvalidBase32)?;
+        Self::from_data(account, &data)
     }
 
-    fn get_versions(&self) -> CamoVersions {
+    pub fn camo_versions(&self) -> CamoVersions {
         self.versions
     }
 
-    fn sender_ecdh(&self, sender_key: &Key) -> SecretBytes<32> {
-        ecdh(sender_key.as_scalar(), &self.point_view_key)
+    pub fn signer_account(&self) -> Account {
+        Account::from_both_points(&self.point_spend_key, &self.compressed_spend_key)
     }
 
-    fn derive_account_from_secret(&self, secret: &SecretBytes<32>, i: u32) -> Account {
+    pub fn sender_ecdh(
+        &self,
+        sender_key: &Key,
+        sender_frontier: [u8; 32],
+    ) -> (SecretBytes<32>, Notification) {
+        let r = blake2b_scalar(
+            &[
+                sender_key.as_scalar().as_slice(),
+                &sender_frontier,
+                self.compressed_spend_key.as_bytes(),
+            ]
+            .concat(),
+        );
+        (ecdh(&r, &self.point_view_key), self.create_notification(&r))
+    }
+
+    fn create_notification(&self, r: &Scalar) -> Notification {
+        let payload = r * G;
+        match self.versions.highest_supported_version() {
+            Some(CamoVersion::One) => Notification::v1(self.signer_account(), payload.into()),
+            _ => panic!("broken CamoAccountType1 code: incompatible version accepted"),
+        }
+    }
+
+    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
         Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
     }
-
-    fn derive_account_from_block(&self, block: &Block, key: &Key) -> Account {
-        self.derive_account(key, get_standard_index(block))
-    }
 }
-impl Display for CamoAccountV1 {
+impl Display for CamoAccountType1 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.account)
     }
 }
+impl Hash for CamoAccountType1 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.account.hash(state)
+    }
+}
 
 #[cfg(feature = "serde")]
-impl Serialize for CamoAccountV1 {
+impl Serialize for CamoAccountType1 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        CamoAccountV1Serde {
+        CamoAccountType1Serde {
             versions: self.versions,
             point_spend_key: self.point_spend_key,
             point_view_key: self.point_view_key,
@@ -341,12 +358,12 @@ impl Serialize for CamoAccountV1 {
     }
 }
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for CamoAccountV1 {
+impl<'de> Deserialize<'de> for CamoAccountType1 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let keys = CamoAccountV1Serde::deserialize(deserializer)?;
+        let keys = CamoAccountType1Serde::deserialize(deserializer)?;
         Ok(points_to_account(
             keys.versions,
             keys.point_spend_key,
@@ -356,14 +373,14 @@ impl<'de> Deserialize<'de> for CamoAccountV1 {
 }
 #[cfg(feature = "serde")]
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
-struct CamoAccountV1Serde {
+struct CamoAccountType1Serde {
     versions: CamoVersions,
     point_spend_key: EdwardsPoint,
     point_view_key: EdwardsPoint,
 }
 
 camo_address_tests!(
-    CamoKeysV1, CamoViewKeysV1, CamoAccountV1,
+    CamoKeysType1, CamoViewKeysType1, CamoAccountType1,
     versions!(1),
     "camo_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

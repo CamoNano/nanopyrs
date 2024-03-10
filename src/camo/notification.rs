@@ -24,7 +24,7 @@ impl Notification {
         })
     }
 
-    pub fn from_v1(block: Block)-> Notification {
+    pub fn from_v1(block: &Block)-> Notification {
         Notification::V1(NotificationV1::from(block))
     }
 }

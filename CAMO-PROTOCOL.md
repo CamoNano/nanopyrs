@@ -101,7 +101,7 @@ If a user, using a Nano account $A_{1}$ with private key $a$ and most recent ("f
 
 Using Nano account $A_{2}$, preferably such that $A_{1} \ne A_{2}$, with the "representative" field set to the Nano account with public key $R$, send a payment of low value $(n_{notify} < n)$ to the Nano account with public key $K_{spend}$. This will be referred to as a "notification" transaction/payment.
 
-Using $A_{1}$, send $(n - n_{notify})$ coins to $K_{masked}$. This will be referred to as a "camo" transaction/payment.
+Using $A_{1}$, send $(n - n_{notify})$ coins to the Nano account with public key $K_{masked}$. This will be referred to as a "camo" transaction/payment.
 
 ### Receiving
 

@@ -35,9 +35,10 @@ pub mod epoch_signers {
 
 #[cfg(feature = "camo")]
 mod camo {
+    use super::ONE_MICRO_NANO;
     use crate::camo::CamoVersion;
 
-    pub const CAMO_ACCOUNT_PREFIX: &str = "camo_";
+    pub(crate) const CAMO_ACCOUNT_PREFIX: &str = "camo_";
     pub(crate) const ADDRESS_CHARS_SAMPLE_SIZE: usize = 8;
 
     pub(crate) const CAMO_PREFIX_LEN: usize = CAMO_ACCOUNT_PREFIX.len();
@@ -48,7 +49,7 @@ mod camo {
     /// Currently, only version `1` is supported.
     pub const HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION: u8 = 1;
 
-    pub(crate) const ALL_POSSIBLE_VERSIONS: &[CamoVersion] = &[
+    pub(crate) const ALL_POSSIBLE_CAMO_VERSIONS: &[CamoVersion] = &[
         CamoVersion::One,
         CamoVersion::Two,
         CamoVersion::Three,
@@ -59,7 +60,16 @@ mod camo {
         CamoVersion::Eight,
     ];
 
-    pub(crate) const ALL_SUPPORTED_VERSIONS: &[CamoVersion] = &[CamoVersion::One];
+    pub(crate) const ALL_SUPPORTED_CAMO_VERSIONS: &[CamoVersion] = &[CamoVersion::One];
+
+    /// 0.0005 (5 * 10<sup>-4</sup>) Nano.
+    ///
+    /// The minimum amount of coins that should be *sent* in a Camo transaction.
+    pub const CAMO_SENDER_DUST_THRESHOLD: u128 = ONE_MICRO_NANO * 500;
+    /// 0.00049 (4.9 * 10<sup>-4</sup>) Nano.
+    ///
+    /// The minimum amount of coins that should be *received* in a Camo transaction.
+    pub const CAMO_RECIPIENT_DUST_THRESHOLD: u128 = ONE_MICRO_NANO * 490;
 
     /// intended to be used with `hashes::hazmat::get_category_seed`
     pub const SPEND_CONSTANTS_X_INDEX: u32 = 0;

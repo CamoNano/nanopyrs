@@ -37,14 +37,14 @@ macro_rules! versions {
 
 fn is_possible_version(version: u8) -> bool {
     match version.try_into() {
-        Ok(v) => ALL_POSSIBLE_VERSIONS.contains(&v),
+        Ok(v) => ALL_POSSIBLE_CAMO_VERSIONS.contains(&v),
         Err(_) => false,
     }
 }
 
 fn is_supported_version(version: u8) -> bool {
     match version.try_into() {
-        Ok(v) => ALL_SUPPORTED_VERSIONS.contains(&v),
+        Ok(v) => ALL_SUPPORTED_CAMO_VERSIONS.contains(&v),
         Err(_) => false,
     }
 }
@@ -191,7 +191,7 @@ impl CamoVersions {
 
     /// Returns the highest version that is supported by the `camo_` account **but** not necessarily supported by this software
     pub fn highest_signaled_version(&self) -> Option<CamoVersion> {
-        ALL_POSSIBLE_VERSIONS
+        ALL_POSSIBLE_CAMO_VERSIONS
             .iter()
             .rev()
             .find(|&&version| self.signals_version(version))
@@ -200,7 +200,7 @@ impl CamoVersions {
 
     /// Returns the highest version that is supported by the `camo_` account **and** supported by this software
     pub fn highest_supported_version(&self) -> Option<CamoVersion> {
-        ALL_POSSIBLE_VERSIONS
+        ALL_POSSIBLE_CAMO_VERSIONS
             .iter()
             .rev()
             .find(|&&version| self.supports_version(version))
@@ -209,7 +209,7 @@ impl CamoVersions {
 
     /// Returns all versions that are supported by the `camo_` account **but** not necessarily supported by this software
     pub fn all_signaled_versions(&self) -> Vec<CamoVersion> {
-        ALL_POSSIBLE_VERSIONS
+        ALL_POSSIBLE_CAMO_VERSIONS
             .iter()
             .filter(|&&version| self.signals_version(version))
             .copied()
@@ -218,7 +218,7 @@ impl CamoVersions {
 
     /// Returns all versions that are supported by the `camo_` account **and** supported by this software
     pub fn all_supported_versions(&self) -> Vec<CamoVersion> {
-        ALL_POSSIBLE_VERSIONS
+        ALL_POSSIBLE_CAMO_VERSIONS
             .iter()
             .filter(|&&version| self.supports_version(version))
             .copied()
@@ -302,10 +302,10 @@ mod tests {
         assert!(!is_possible_version(0.try_into().unwrap()));
         assert!(!is_supported_version(0.try_into().unwrap()));
 
-        for i in super::ALL_POSSIBLE_VERSIONS {
+        for i in super::ALL_POSSIBLE_CAMO_VERSIONS {
             assert!(is_possible_version(i.as_u8()));
         }
-        for i in super::ALL_SUPPORTED_VERSIONS {
+        for i in super::ALL_SUPPORTED_CAMO_VERSIONS {
             assert!(is_supported_version(i.as_u8()));
         }
 

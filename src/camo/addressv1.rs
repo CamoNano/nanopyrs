@@ -323,7 +323,9 @@ impl CamoAccountType1 {
     fn create_notification(&self, r: &Scalar) -> Notification {
         let payload = r * G;
         match self.versions.highest_supported_version() {
-            Some(CamoVersion::One) => Notification::create_v1(self.signer_account(), payload.into()),
+            Some(CamoVersion::One) => {
+                Notification::create_v1(self.signer_account(), payload.into())
+            }
             _ => panic!("broken CamoAccountType1 code: incompatible version accepted"),
         }
     }

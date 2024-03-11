@@ -8,20 +8,21 @@ Let:
 
 1. $x \mathbin\Vert y$ denote concatenation;
 2. $G$ denote the ed25519 generator point;
-3. $(a, A)$ denote an ed25519 keypair where $A = a \cdot G$;
-4. $H_{32}(x)$, or simply $H(x)$, denote the blake2b hashing algorithm outputting a 32-byte digest;
-5. $H_{64}(x)$ denote the blake2b hashing algorithm outputting a 64-byte digest;
-6. $H_{checksum}(x)$ denote the blake2b hashing algorithm outputting a 5-byte digest;
-7. $H_{category}(x, i)$ be defined as $H(i \mathbin\Vert x)$;
-8. $H_{seed}(x, i)$ be defined as $H(x \mathbin\Vert i)$;
-9. $H_{s}(x)$ be defined as $H_{64}(x)$, where the first 32 bytes of the output are interpreted as an ed25519 scalar following standard safety guidelines, such as bit clamping;
-10. $H_{si}(x, i)$ be defined as $H_{s}(H_{seed}(x, i))$;
-11. ${EncodeBase32}(x)$ denote Nano's encode-to-base32 algorithm;
-12. ${DecodeBase32}(x)$ denote Nano's decode-from-base32 algorithm;
+3. $H_{32}(x)$, or simply $H(x)$, denote the blake2b hashing algorithm outputting a 32-byte digest;
+4. $H_{64}(x)$ denote the blake2b hashing algorithm outputting a 64-byte digest;
+5. $H_{checksum}(x)$ denote the blake2b hashing algorithm outputting a 5-byte digest;
+6. $H_{category}(x, i)$ be defined as $H(i \mathbin\Vert x)$;
+7. $H_{seed}(x, i)$ be defined as $H(x \mathbin\Vert i)$;
+8. $H_{s}(x)$ be defined as $H_{64}(x)$, where the first 32 bytes of the output are interpreted as an ed25519 scalar following standard safety guidelines, such as bit clamping;
+9. $H_{si}(x, i)$ be defined as $H_{s}(H_{seed}(x, i))$;
+10. ${EncodeBase32}(x)$ denote Nano's encode-to-base32 algorithm;
+11. ${DecodeBase32}(x)$ denote Nano's decode-from-base32 algorithm;
+12. $n_{Smin}$ denote 0.0005 Nano (5×10<sup>26</sup> raw)
+13. $n_{Rmin}$ denote 0.00049 Nano (4.9×10<sup>26</sup> raw)
 
 . . . where $i$ denotes a 32-bit unsigned integer encoded as big-endian bytes.
 
-Note that only $H_{category}(x, i)$ is unique to this protocol; The rest are already in use by the standard Nano protocol (albeit some under different names), and can be re-used.
+Note that only $H_{category}(x, i)$, $n_{Smin}$, and $n_{Rmin}$ are unique to this protocol; The rest are already in use by the standard Nano protocol (albeit some under different names), and can be re-used.
 
 ## Keypairs
 
@@ -92,20 +93,20 @@ An example Camo Nano address is `camo_168be68tsxk1o8xferck89gj75kzk8fpbhote77ed1
 
 ### Sending
 
-If a user, using a Nano account $A_{1}$ with private key $a$ and most recent ("frontier") block $B$, wishes to send $n$ coins to camo account $(v, K_{spend}, K_{view})$, then let:
+If a user, using a Nano account $A_{1}$ with private key $a$ and most recent ("frontier") block $B$, wishes to send $n$ coins to the camo account represented by $(v, K_{spend}, K_{view})$, where $n \ge (n_{Smin} \cdot 2) $, then let:
  * $r = H_{s}(a \mathbin\Vert H(B) \mathbin\Vert K_{spend}$);
  * $R = r \cdot G$;
  * $Q = r \cdot K_{view}$;
  * $k_{shared} = H_{si}(Q, 0)$;
  * $K_{masked} = K_{spend} + (k_{shared} \cdot G)$;
 
-Using Nano account $A_{2}$, preferably such that $A_{1} \ne A_{2}$, with the "representative" field set to the Nano account with public key $R$, send a payment of low value $(n_{notify} < n)$ to the Nano account with public key $K_{spend}$. This will be referred to as a "notification" transaction/payment.
+Using Nano account $A_{2}$, preferably such that $A_{1} \ne A_{2}$, with the "representative" field set to the Nano account with public key $R$, send a payment of low value $n_{notify}$ to the Nano account with public key $K_{spend}$, where $n_{Smin} \le n_{notify} \le (n - n_{notify})$. This will be referred to as a "notification" transaction/payment.
 
 Using $A_{1}$, send $(n - n_{notify})$ coins to the Nano account with public key $K_{masked}$. This will be referred to as a "camo" transaction/payment.
 
 ### Receiving
 
-Given a keypair as defined in the [Keypairs](#keypairs) section, check for incoming notification payments to the Nano account with public key $K_{spend}$. Receive the notification payments.
+Given a keypair as defined in the [Keypairs](#keypairs) section, check for incoming payments ("notifications") to the Nano account with public key $K_{spend}$, and amounts of at least $n_{Rmin}$. Receive the notification payments.
 
 For each notification, extract $R$, and let:
  * $Q = k_{view} \cdot R$;
@@ -113,7 +114,7 @@ For each notification, extract $R$, and let:
  * $k_{masked} = k_{spend} + k_{shared}$;
  * $K_{masked} = k_{masked} \cdot G$;
 
-Check the Nano account with keypair $(k_{masked}, K_{masked})$ for incoming camo payments, and receive them.
+Check the Nano account with keypair $(k_{masked}, K_{masked})$ for incoming payments, and receive them.
 
 ### Notes
 $r$ does not necessarily have to be calculated in this way. All that matters is that it is secret, and unique to every camo payment. However, using a standard pseudo-random algorithm is useful if $r$ ever needs to be recovered by the sender.
@@ -121,6 +122,8 @@ $r$ does not necessarily have to be calculated in this way. All that matters is 
 The calculated $Q$ value is the same between the sender and recipient, since $Q = K_{view} \cdot r = k_{view} \cdot R = k_{view} \cdot r \cdot G$. Since calculating $K_{masked}$ requires knowledge of $Q$, which itself requires knowledge of either $r$ or $k_{view}$, no outside observer can calculate $K_{masked}$.
 
 The sender can send a notification to the recipient at any point during or after the camo payment, and even send duplicate notifications, as long as the sender knows $R$.
+
+The discrepancy between $n_{Smin}$ and $n_{Rmin}$ is for future compatibility. Future versions may use small amounts of raw between these two values to encode data.
 
 This system is capable of sending to camo accounts through wallet software which does not support them, though it's not necessarily recommended. Use external software to calculate $K_{masked}$, and any other values as needed. Then:
  * To send a camo payment, create a transaction sending coins to $K_{masked}$.

@@ -143,6 +143,7 @@ auto_from_impl!(FromStr: Account);
 auto_from_impl!(From: Account => String);
 auto_from_impl!(From: Account => EdwardsPoint);
 auto_from_impl!(From: Account => CompressedEdwardsY);
+auto_from_impl!(From: Account => [u8; 32]);
 auto_from_impl!(From: Key => Account);
 auto_from_impl!(From: EdwardsPoint => Account);
 auto_from_impl!(TryFrom: String => Account);
@@ -220,6 +221,11 @@ impl From<&Account> for EdwardsPoint {
 impl From<&Account> for CompressedEdwardsY {
     fn from(val: &Account) -> Self {
         val.compressed
+    }
+}
+impl From<&Account> for [u8; 32] {
+    fn from(val: &Account) -> Self {
+        val.compressed.to_bytes()
     }
 }
 #[cfg(feature = "rpc")]

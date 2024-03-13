@@ -79,12 +79,8 @@ impl From<(Account, [u8; 32], u128)> for Receivable {
 #[derive(Debug, Clone)]
 pub struct Rpc(DebugRpc);
 impl Rpc {
-    pub fn new(url: &str) -> Result<Rpc, RpcError> {
-        Ok(Rpc(DebugRpc::new(url)?))
-    }
-
-    pub fn new_with_proxy(url: &str, proxy: &str) -> Result<Rpc, RpcError> {
-        Ok(Rpc(DebugRpc::new_with_proxy(url, proxy)?))
+    pub fn new(url: &str, proxy: impl Into<Option<String>>) -> Result<Rpc, RpcError> {
+        Ok(Rpc(DebugRpc::new(url, proxy)?))
     }
 
     /// Get the URL of this RPC

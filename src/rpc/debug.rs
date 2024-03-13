@@ -2,7 +2,7 @@ use super::{encode, error::RpcError, parse, AccountInfo, BlockInfo, Receivable};
 use crate::{Account, Block};
 
 use json::{Map, Value as JsonValue};
-use reqwest::{ClientBuilder, Proxy, RequestBuilder};
+use reqwest::{ClientBuilder, RequestBuilder};
 use serde_json as json;
 
 macro_rules! request {
@@ -45,23 +45,16 @@ pub struct DebugRpc {
     proxy: Option<String>,
 }
 impl DebugRpc {
-    pub fn new(url: &str) -> Result<DebugRpc, RpcError> {
-        Ok(DebugRpc {
+    pub fn new(url: &str, proxy: impl Into<Option<String>>) -> Result<DebugRpc, RpcError> {
+        let rpc = DebugRpc {
             builder: ClientBuilder::new().build()?.post(url),
             url: url.into(),
-            proxy: None,
-        })
-    }
-
-    pub fn new_with_proxy(url: &str, proxy: &str) -> Result<DebugRpc, RpcError> {
-        Ok(DebugRpc {
-            builder: ClientBuilder::new()
-                .proxy(Proxy::all(proxy)?)
-                .build()?
-                .post(url),
-            url: url.into(),
-            proxy: Some(proxy.into()),
-        })
+            proxy: proxy.into(),
+        };
+        if rpc.try_clone().is_none() {
+            return Err(RpcError::InvalidRPC);
+        }
+        Ok(rpc)
     }
 
     /// Get the url of this RPC
@@ -284,13 +277,17 @@ impl DebugRpc {
         };
         map_response!(response, result)
     }
+
+    fn try_clone(&self) -> Option<DebugRpc> {
+        Some(DebugRpc {
+            builder: self.builder.try_clone()?,
+            url: self.url.clone(),
+            proxy: self.proxy.clone(),
+        })
+    }
 }
 impl Clone for DebugRpc {
     fn clone(&self) -> Self {
-        DebugRpc {
-            builder: self.builder.try_clone().unwrap(),
-            url: self.url.clone(),
-            proxy: self.proxy.clone(),
-        }
+        self.try_clone().unwrap()
     }
 }

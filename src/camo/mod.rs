@@ -90,8 +90,9 @@ impl CamoKeys {
         unwrap_enum!(CamoKeys, self.receiver_ecdh(notification))
     }
 
-    pub fn derive_key(&self, secret: &SecretBytes<32>, i: u32) -> Key {
-        unwrap_enum!(CamoKeys, self.derive_key(secret, i))
+    /// Use `receiver_ecdh()` to obtain the `secret`
+    pub fn derive_key(&self, secret: &SecretBytes<32>) -> Key {
+        unwrap_enum!(CamoKeys, self.derive_key(secret))
     }
 }
 
@@ -157,8 +158,9 @@ impl CamoViewKeys {
         unwrap_enum!(CamoViewKeys, self.receiver_ecdh(notification))
     }
 
-    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(CamoViewKeys, self.derive_account(secret, i))
+    /// Use `receiver_ecdh()` to obtain the `secret`
+    pub fn derive_account(&self, secret: &SecretBytes<32>) -> Account {
+        unwrap_enum!(CamoViewKeys, self.derive_account(secret))
     }
 }
 
@@ -240,6 +242,8 @@ impl CamoAccount {
     }
 
     /// Calculate the shared secret between this account and the given key.
+    ///
+    /// `sender_frontier` is used to ensure that all generated keys are unique per-camo-payment.
     pub fn sender_ecdh(
         &self,
         sender_key: &Key,
@@ -248,8 +252,9 @@ impl CamoAccount {
         unwrap_enum!(CamoAccount, self.sender_ecdh(sender_key, sender_frontier))
     }
 
-    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        unwrap_enum!(CamoAccount, self.derive_account(secret, i))
+    /// Use `sender_ecdh()` to obtain the `secret`
+    pub fn derive_account(&self, secret: &SecretBytes<32>) -> Account {
+        unwrap_enum!(CamoAccount, self.derive_account(secret))
     }
 }
 impl FromStr for CamoAccount {
@@ -369,11 +374,11 @@ macro_rules! camo_address_tests {
 
                 let (sender_ecdh, notification) =
                     recipient_account.sender_ecdh(&sender_keys, [50; 32]);
-                let sender_derived = recipient_account.derive_account(&sender_ecdh, 0);
+                let sender_derived = recipient_account.derive_account(&sender_ecdh);
 
                 let recipient_ecdh = recipient_keys.receiver_ecdh(&notification);
-                let recipient_derived = recipient_keys.derive_key(&recipient_ecdh, 0).to_account();
-                let recipient_vk_derived = recipient_view_keys.derive_account(&recipient_ecdh, 0);
+                let recipient_derived = recipient_keys.derive_key(&recipient_ecdh).to_account();
+                let recipient_vk_derived = recipient_view_keys.derive_account(&recipient_ecdh);
 
                 assert!(recipient_derived == recipient_vk_derived);
                 assert!(recipient_derived == sender_derived);

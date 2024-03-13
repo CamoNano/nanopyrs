@@ -6,6 +6,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum RpcError {
+    /// Could not create RPC: possibly invalid URL
+    #[error("could not create RPC: possibly invalid URL")]
+    InvalidRPC,
     #[error(transparent)]
     ReqwestError(#[from] ReqwestError),
     /// Error while parsing json

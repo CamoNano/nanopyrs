@@ -151,8 +151,8 @@ impl CamoKeysType1 {
         ecdh(&self.private_view, &point)
     }
 
-    pub fn derive_key(&self, secret: &SecretBytes<32>, i: u32) -> Key {
-        Key::from(&self.private_spend + get_account_scalar(secret, i))
+    pub fn derive_key(&self, secret: &SecretBytes<32>) -> Key {
+        Key::from(&self.private_spend + get_account_scalar(secret, 0))
     }
 }
 
@@ -199,8 +199,8 @@ impl CamoViewKeysType1 {
         ecdh(&self.private_view, &point)
     }
 
-    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
+    pub fn derive_account(&self, secret: &SecretBytes<32>) -> Account {
+        Account::from(self.point_spend_key + (get_account_scalar(secret, 0) * G))
     }
 }
 
@@ -330,8 +330,8 @@ impl CamoAccountType1 {
         }
     }
 
-    pub fn derive_account(&self, secret: &SecretBytes<32>, i: u32) -> Account {
-        Account::from(self.point_spend_key + (get_account_scalar(secret, i) * G))
+    pub fn derive_account(&self, secret: &SecretBytes<32>) -> Account {
+        Account::from(self.point_spend_key + (get_account_scalar(secret, 0) * G))
     }
 }
 impl Display for CamoAccountType1 {

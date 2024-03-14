@@ -260,9 +260,6 @@ mod tests {
     use super::*;
     use crate::{constants::get_genesis_account, SecretBytes};
 
-    #[cfg(feature = "serde")]
-    use crate::serde_test;
-
     #[test]
     fn from_str() {
         let genesis = get_genesis_account().to_string();
@@ -287,7 +284,14 @@ mod tests {
         let account_2 = key_2.to_account();
         assert!((key_1 + key_2).to_account() == account_1 + account_2)
     }
+}
 
-    serde_test!(key_serde: Key::from_seed(&[9; 32].into(), 0) => 32);
-    serde_test!(account_serde: get_genesis_account() => 32);
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod serde_tests {
+    use super::*;
+    use crate::{constants::get_genesis_account, serde_test};
+
+    serde_test!(key: Key::from_seed(&[9; 32].into(), 0) => 32);
+    serde_test!(account: get_genesis_account() => 32);
 }

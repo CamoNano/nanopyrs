@@ -183,9 +183,6 @@ mod tests {
     use super::*;
     use crate::{constants::ONE_NANO, Key, SecretBytes};
 
-    #[cfg(feature = "serde")]
-    use crate::serde_test;
-
     const TEST_WORK_DIFFICULTY: [u8; 8] = 0xfff8000000000000_u64.to_be_bytes();
     const NORMAL_WORK_DIFFICULTY: [u8; 8] = 0xfffffff800000000_u64.to_be_bytes();
     const INFINITE_WORK_DIFFICULTY: [u8; 8] = 0xffffffffffffffff_u64.to_be_bytes();
@@ -364,9 +361,16 @@ mod tests {
         assert!(block.has_valid_work(INFINITE_WORK_DIFFICULTY));
         assert!(block.has_valid_signature());
     }
+}
 
-    serde_test!(block_type_serde: BlockType::Receive => 4);
-    serde_test!(block_serde: Block {
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod serde_tests {
+    use super::*;
+    use crate::{constants::ONE_NANO, serde_test};
+
+    serde_test!(block_type: BlockType::Receive => 4);
+    serde_test!(block: Block {
         block_type: BlockType::Receive,
         account: get_genesis_account(),
         previous: [19; 32],

@@ -332,9 +332,6 @@ macro_rules! camo_address_tests {
             use super::*;
             use crate::versions;
 
-            #[cfg(feature = "serde")]
-            use crate::serde_test;
-
             #[test]
             fn camo_account() {
                 let seed = SecretBytes::from([0; 32]);
@@ -399,9 +396,16 @@ macro_rules! camo_address_tests {
 
                 assert!(sender_view_keys_1 == sender_view_keys_2);
             }
+        }
 
-            serde_test!(view_keys_serde: $keys::from_seed(&SecretBytes::from([24; 32]), 99, $versions).unwrap().to_view_keys() => $vk_len);
-            serde_test!(account_serde: $addr.parse::<$account>().unwrap() => $account_len);
+        #[cfg(test)]
+        #[cfg(feature = "serde")]
+        mod serde_tests {
+            use super::*;
+            use crate::{versions, serde_test};
+
+            serde_test!(view_keys: $keys::from_seed(&SecretBytes::from([24; 32]), 99, $versions).unwrap().to_view_keys() => $vk_len);
+            serde_test!(account: $addr.parse::<$account>().unwrap() => $account_len);
         }
     };
 }

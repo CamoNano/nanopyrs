@@ -307,9 +307,6 @@ mod tests {
     use super::*;
     use crate::constants::HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION;
 
-    #[cfg(feature = "serde")]
-    use crate::serde_test;
-
     const TEST_VERSIONS_1: CamoVersions = CamoVersions {
         supported_versions: [true, false, true, false, true, true, false, false],
     };
@@ -387,9 +384,14 @@ mod tests {
             CamoVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits()) == TEST_VERSIONS_3
         );
     }
+}
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod serde_tests {
+    use super::*;
+    use crate::serde_test;
 
     #[test]
-    #[cfg(feature = "serde")]
     fn camo_version_serde() {
         let bytes = bincode::serialize(&CamoVersion::Two).unwrap();
         assert!(bytes.len() == 1);

@@ -208,10 +208,10 @@ impl_op_ex_commutative!(*|a: &Scalar, b: &EdwardsPoint| -> EdwardsPoint { a.as_r
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
-mod tests {
+mod serde_tests {
     use super::*;
     use crate::serde_test;
 
-    serde_test!(secret_bytes_serde: SecretBytes::from([99; 32]) => 32);
-    serde_test!(scalar_bytes_serde: Scalar::from_bytes_mod_order([99; 32]) => 32);
+    serde_test!(secret_bytes: SecretBytes::from([99; 32]) => 32);
+    serde_test!(scalar: Scalar::from_bytes_mod_order([99; 32]) => 32);
 }

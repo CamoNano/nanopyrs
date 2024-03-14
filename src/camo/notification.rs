@@ -55,14 +55,14 @@ impl From<&Block> for NotificationV1 {
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
-mod tests {
+mod serde_tests {
     use super::*;
     use crate::{constants::get_genesis_account, serde_test};
 
-    serde_test!(notification_v1_serde: NotificationV1 {
+    serde_test!(notification_v1: NotificationV1 {
         recipient: get_genesis_account(),
         representative_payload: get_genesis_account()
     } => 32 + 32);
 
-    serde_test!(notification_serde: Notification::create_v1(get_genesis_account(), get_genesis_account()) => 4 + 64);
+    serde_test!(notification: Notification::create_v1(get_genesis_account(), get_genesis_account()) => 4 + 64);
 }

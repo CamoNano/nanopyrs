@@ -16,6 +16,10 @@ use serde::{Deserialize, Serialize};
 
 pub use error::RpcError;
 
+#[cfg(test)]
+#[cfg(feature = "serde")]
+pub(crate) const USIZE_LEN: usize = std::mem::size_of::<usize>();
+
 /// General info about a block
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -212,15 +216,15 @@ impl Rpc {
 
 #[cfg(test)]
 #[cfg(feature = "serde")]
-mod tests {
+mod serde_tests {
     use super::*;
     use crate::{
         constants::get_genesis_account,
-        constants::{ONE_NANO, USIZE_LEN},
+        constants::ONE_NANO,
         serde_test, Block, BlockType, Signature,
     };
 
-    serde_test!(block_info_serde: BlockInfo {
+    serde_test!(block_info: BlockInfo {
         height: 939,
         timestamp: 3902193,
         confirmed: true,
@@ -236,7 +240,7 @@ mod tests {
         }
     } => USIZE_LEN + 8 + 1 + 220);
 
-    serde_test!(account_info_serde: AccountInfo {
+    serde_test!(account_info: AccountInfo {
         frontier: [92; 32],
         open_block: [192; 32],
         balance: 89823892,
@@ -248,7 +252,7 @@ mod tests {
         receivable: 100
     } => 32 + 32 + 16 + 8 + USIZE_LEN + USIZE_LEN + 32 + 16 + USIZE_LEN);
 
-    serde_test!(receivable_serde: Receivable {
+    serde_test!(receivable: Receivable {
         recipient: get_genesis_account(),
         block_hash: [51; 32],
         amount: 432894284243

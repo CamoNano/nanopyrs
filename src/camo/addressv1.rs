@@ -16,6 +16,7 @@ use curve25519_dalek::{
 };
 use std::fmt::Display;
 use std::hash::Hash;
+use std::str::FromStr;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[cfg(feature = "serde")]
@@ -100,7 +101,9 @@ fn account_from_data(account: &str, data: &[u8]) -> Result<CamoAccountType1, Nan
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CamoKeysType1 {
     versions: CamoVersions,
+    #[cfg_attr(feature = "serde", serde(rename = "spend"))]
     private_spend: Scalar,
+    #[cfg_attr(feature = "serde", serde(rename = "view"))]
     private_view: Scalar,
 }
 impl CamoKeysType1 {
@@ -273,7 +276,9 @@ impl<'de> Deserialize<'de> for CamoViewKeysType1 {
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
 struct CamoViewKeysType1Serde {
     versions: CamoVersions,
+    #[cfg_attr(feature = "serde", serde(rename = "spend"))]
     point_spend_key: EdwardsPoint,
+    #[cfg_attr(feature = "serde", serde(rename = "view"))]
     private_view: Scalar,
 }
 
@@ -289,11 +294,6 @@ pub struct CamoAccountType1 {
 impl CamoAccountType1 {
     pub fn from_data(account: &str, data: &[u8]) -> Result<CamoAccountType1, NanoError> {
         account_from_data(account, data)
-    }
-
-    pub fn from_str(account: &str) -> Result<Self, NanoError> {
-        let data = base32::decode(&account[CAMO_PREFIX_LEN..]).ok_or(NanoError::InvalidBase32)?;
-        Self::from_data(account, &data)
     }
 
     pub fn camo_versions(&self) -> CamoVersions {
@@ -332,6 +332,13 @@ impl CamoAccountType1 {
 
     pub fn derive_account(&self, secret: &SecretBytes<32>) -> Account {
         Account::from(self.point_spend_key + (get_account_scalar(secret, 0) * G))
+    }
+}
+impl FromStr for CamoAccountType1 {
+    type Err = NanoError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let data = base32::decode(&s[CAMO_PREFIX_LEN..]).ok_or(NanoError::InvalidBase32)?;
+        Self::from_data(s, &data)
     }
 }
 impl Display for CamoAccountType1 {
@@ -377,12 +384,14 @@ impl<'de> Deserialize<'de> for CamoAccountType1 {
 #[derive(Zeroize, ZeroizeOnDrop, Serialize, Deserialize)]
 struct CamoAccountType1Serde {
     versions: CamoVersions,
+    #[cfg_attr(feature = "serde", serde(rename = "spend"))]
     point_spend_key: EdwardsPoint,
+    #[cfg_attr(feature = "serde", serde(rename = "view"))]
     point_view_key: EdwardsPoint,
 }
 
 camo_address_tests!(
-    CamoKeysType1, CamoViewKeysType1, CamoAccountType1,
+    CamoKeysType1, CamoViewKeysType1 => 1 + 32 + 32, CamoAccountType1 => 1 + 32 + 32,
     versions!(1),
     "camo_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

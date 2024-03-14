@@ -6,8 +6,6 @@ This is, partially, a Rust rewrite of the Python [nanopy](https://github.com/npy
 
 There is not very much documentation at this time.
 
-Things may or may not work before version `1.0.0`.
-
 *Use at your own risk. I cannot guarantee that this library is perfect.*
 
 ## Feature Flags
@@ -25,6 +23,9 @@ Currently, only the following commands are officially supported: `account_balanc
 Camo Nano functionality is enabled by the `camo` feature, which is **disabled by default**.
 
 Note that Camo Nano is a **custom, experimental, and non-standard feature** of this library, and is generally not supported by wallets or the wider Nano ecosystem.
+See the `CAMO-PROTOCOL.md` file for details on the Camo Nano protocol.
+
+Version one of the Camo Nano protocol should not be considered finalized until version `1.0.0`.
 
 ### Serde
 

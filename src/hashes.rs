@@ -76,6 +76,8 @@ pub fn blake2b_scalar(input: &[u8]) -> Scalar {
 
 #[cfg(test)]
 mod tests {
+    use crate::Scalar;
+
     #[test]
     fn blake2b512() {
         let result = super::blake2b512(b"test");
@@ -96,5 +98,10 @@ mod tests {
         let result = super::blake2b_checksum(b"test");
         assert!(result.as_ref()[..5] == [210, 40, 235, 33, 186])
     }
-    // blake2b_scalar is covered by blake2b512
+    #[test]
+    fn blake2b_scalar() {
+        let bytes: [u8; 32] = *b"\xa7\x10y\xd4(S\xde\xa2nE0\x043\x86p\xa58\x14\xb7\x817\xff\xbe\xd0v\x03\xa4\x1dv\xa4\x83\xaa";
+        let result = super::blake2b_scalar(b"test");
+        assert!(result == Scalar::from(bytes))
+    }
 }

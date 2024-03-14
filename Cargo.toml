@@ -24,6 +24,9 @@ serde_json = { version = "1.0.107", optional = true }
 serde = { version = "1.0.196", features = ["derive"], optional = true }
 serde_arrays = { version = "0.1.0", optional = true }
 
+[dev-dependencies]
+bincode = "1.3.3"
+
 [features]
 default = []
 all = ["camo", "rpc", "serde"]

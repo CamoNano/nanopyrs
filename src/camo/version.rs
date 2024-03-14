@@ -2,7 +2,7 @@ use crate::{auto_from_impl, constants::*, NanoError};
 use zeroize::Zeroize;
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as SerdeError, Deserialize, Serialize};
 
 /// Decode `CamoVersions` from the compact `u8` representation.
 ///
@@ -52,7 +52,6 @@ fn is_supported_version(version: u8) -> bool {
 /// A Camo protocol version
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Zeroize)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum CamoVersion {
     /// Camo protocol version 1 (currently the only implemented version)
     One = 1,
@@ -74,6 +73,27 @@ pub enum CamoVersion {
 impl CamoVersion {
     pub fn as_u8(&self) -> u8 {
         self.into()
+    }
+}
+#[cfg(feature = "serde")]
+impl Serialize for CamoVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let byte: u8 = self.into();
+        byte.serialize(serializer)
+    }
+}
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for CamoVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let version =
+            CamoVersion::try_from(u8::deserialize(deserializer)?).map_err(SerdeError::custom)?;
+        Ok(version)
     }
 }
 auto_from_impl!(TryFrom: u8 => CamoVersion);
@@ -287,6 +307,9 @@ mod tests {
     use super::*;
     use crate::constants::HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION;
 
+    #[cfg(feature = "serde")]
+    use crate::serde_test;
+
     const TEST_VERSIONS_1: CamoVersions = CamoVersions {
         supported_versions: [true, false, true, false, true, true, false, false],
     };
@@ -364,4 +387,14 @@ mod tests {
             CamoVersions::decode_from_bits(TEST_VERSIONS_3.encode_to_bits()) == TEST_VERSIONS_3
         );
     }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn camo_version_serde() {
+        let bytes = bincode::serialize(&CamoVersion::Two).unwrap();
+        assert!(bytes.len() == 1);
+        let version: CamoVersion = bincode::deserialize(&bytes).unwrap();
+        assert!(CamoVersion::Two == version);
+    }
+    serde_test!(camo_versions_serde: CamoVersions::new_signaling(&[CamoVersion::Two, CamoVersion::Seven]) => 1);
 }

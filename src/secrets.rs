@@ -109,9 +109,7 @@ struct SecretBytesSerde<const N: usize> {
 /// A wrapper for `curve25519_dalek::scalar::Scalar` that automatically calls `zeroize` when dropped
 #[derive(Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Scalar {
-    scalar: Box<RawScalar>,
-}
+pub struct Scalar(Box<RawScalar>);
 impl Scalar {
     /// From 32 bytes, manipulating them as needed
     pub fn from_bytes_mod_order(mut bytes: [u8; 32]) -> Scalar {
@@ -148,11 +146,9 @@ auto_from_impl!(From: SecretBytes<64> => Scalar);
 
 impl From<&SecretBytes<32>> for Scalar {
     fn from(value: &SecretBytes<32>) -> Self {
-        Scalar {
-            scalar: Box::new(RawScalar::from_bytes_mod_order(clamp_integer(
-                *value.as_ref(),
-            ))),
-        }
+        Scalar(Box::new(RawScalar::from_bytes_mod_order(clamp_integer(
+            *value.as_ref(),
+        ))))
     }
 }
 impl From<&SecretBytes<64>> for Scalar {
@@ -172,9 +168,7 @@ impl From<[u8; 64]> for Scalar {
 }
 impl From<RawScalar> for Scalar {
     fn from(mut value: RawScalar) -> Self {
-        let scalar = Scalar {
-            scalar: Box::new(value),
-        };
+        let scalar = Scalar(Box::new(value));
         value.zeroize();
         scalar
     }
@@ -186,7 +180,7 @@ impl From<Scalar> for RawScalar {
 }
 impl AsRef<RawScalar> for Scalar {
     fn as_ref(&self) -> &RawScalar {
-        &self.scalar
+        &self.0
     }
 }
 impl Debug for Scalar {
@@ -211,3 +205,13 @@ impl_op_ex!(-|a: &Scalar, b: &RawScalar| -> Scalar { Scalar::from(a.as_ref() - b
 impl_op_ex!(-|a: &RawScalar, b: &Scalar| -> Scalar { Scalar::from(a - b.as_ref()) });
 
 impl_op_ex_commutative!(*|a: &Scalar, b: &EdwardsPoint| -> EdwardsPoint { a.as_ref() * b });
+
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod tests {
+    use super::*;
+    use crate::serde_test;
+
+    serde_test!(secret_bytes_serde: SecretBytes::from([99; 32]) => 32);
+    serde_test!(scalar_bytes_serde: Scalar::from_bytes_mod_order([99; 32]) => 32);
+}

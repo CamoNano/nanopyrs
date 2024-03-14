@@ -1,5 +1,9 @@
 #![warn(unused_crate_dependencies, unsafe_code)]
 
+#[cfg(test)]
+#[cfg(not(feature = "serde"))]
+use bincode as _;
+
 mod account;
 mod error;
 mod nanopy;
@@ -40,6 +44,24 @@ pub(crate) fn try_point_from_slice(key: &[u8]) -> Result<EdwardsPoint, NanoError
     }
     Ok(point)
 }
+
+/// `serde_test!($value => $encoded_bytes_length)`
+#[cfg(test)]
+#[cfg(feature = "serde")]
+macro_rules! serde_test {
+    ($name: ident: $value: expr => $length: expr) => {
+        #[test]
+        #[cfg(feature = "serde")]
+        fn $name() {
+            let bytes = bincode::serialize(&$value).unwrap();
+            assert!(bytes.len() == $length);
+            assert!($value == bincode::deserialize(&bytes).unwrap());
+        }
+    };
+}
+#[cfg(test)]
+#[cfg(feature = "serde")]
+pub(crate) use serde_test;
 
 macro_rules! auto_from_impl {
     (TryFrom: $from: ty => $to: ty) => {

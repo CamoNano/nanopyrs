@@ -24,15 +24,11 @@ use serde_json::Value as JsonValue;
 /// The private key of a `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Key {
-    private: Scalar,
-}
+pub struct Key(Scalar);
 impl Key {
     /// Get key at index (`i`) given 32-byte seed (`seed`)
     pub fn from_seed(seed: &SecretBytes<32>, i: u32) -> Key {
-        Key {
-            private: get_account_scalar(seed, i),
-        }
+        Key(get_account_scalar(seed, i))
     }
 
     pub fn from_scalar(scalar: Scalar) -> Key {
@@ -40,7 +36,11 @@ impl Key {
     }
 
     pub fn as_scalar(&self) -> &Scalar {
-        &self.private
+        &self.0
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
     }
 
     pub fn to_account(&self) -> Account {
@@ -57,23 +57,28 @@ impl Key {
         self.sign_message(&block.hash())
     }
 }
+impl From<[u8; 32]> for Key {
+    fn from(value: [u8; 32]) -> Self {
+        Key(Scalar::from(value))
+    }
+}
 impl From<Scalar> for Key {
     fn from(value: Scalar) -> Self {
-        Key { private: value }
+        Key(value)
     }
 }
 impl From<RawScalar> for Key {
     fn from(value: RawScalar) -> Self {
-        Key::from(Scalar::from(value))
+        Key(Scalar::from(value))
     }
 }
 
 impl_op_ex!(+ |a: &Key, b: &Key| -> Key {
-    Key::from(&a.private + &b.private)
+    Key::from(&a.0 + &b.0)
 });
-impl_op_ex!(-|a: &Key, b: &Key| -> Key { Key::from(&a.private - &b.private) });
+impl_op_ex!(-|a: &Key, b: &Key| -> Key { Key::from(&a.0 - &b.0) });
 
-impl_op_ex_commutative!(*|a: &Key, b: &EdwardsPoint| -> Account { Account::from(&a.private * b) });
+impl_op_ex_commutative!(*|a: &Key, b: &EdwardsPoint| -> Account { Account::from(&a.0 * b) });
 
 /// A `nano_` account
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
@@ -126,7 +131,7 @@ impl Serialize for Account {
     where
         S: serde::Serializer,
     {
-        self.point.serialize(serializer)
+        self.compressed.serialize(serializer)
     }
 }
 #[cfg(feature = "serde")]
@@ -255,6 +260,9 @@ mod tests {
     use super::*;
     use crate::{constants::get_genesis_account, SecretBytes};
 
+    #[cfg(feature = "serde")]
+    use crate::serde_test;
+
     #[test]
     fn from_str() {
         let genesis = get_genesis_account().to_string();
@@ -279,4 +287,7 @@ mod tests {
         let account_2 = key_2.to_account();
         assert!((key_1 + key_2).to_account() == account_1 + account_2)
     }
+
+    serde_test!(key_serde: Key::from_seed(&[9; 32].into(), 0) => 32);
+    serde_test!(account_serde: get_genesis_account() => 32);
 }

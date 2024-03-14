@@ -78,3 +78,7 @@ mod camo {
 }
 #[cfg(feature = "camo")]
 pub use camo::*;
+
+#[cfg(test)]
+#[cfg(feature = "serde")]
+pub(crate) const USIZE_LEN: usize = std::mem::size_of::<usize>();

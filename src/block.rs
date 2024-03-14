@@ -66,6 +66,7 @@ impl BlockType {
         }
     }
 }
+
 impl Display for BlockType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let as_str: String = match self {
@@ -83,6 +84,7 @@ impl Display for BlockType {
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Block {
+    #[cfg_attr(feature = "serde", serde(rename = "type"))]
     pub block_type: BlockType,
     pub account: Account,
     pub previous: [u8; 32],
@@ -180,6 +182,9 @@ impl Block {
 mod tests {
     use super::*;
     use crate::{constants::ONE_NANO, Key, SecretBytes};
+
+    #[cfg(feature = "serde")]
+    use crate::serde_test;
 
     const TEST_WORK_DIFFICULTY: [u8; 8] = 0xfff8000000000000_u64.to_be_bytes();
     const NORMAL_WORK_DIFFICULTY: [u8; 8] = 0xfffffff800000000_u64.to_be_bytes();
@@ -359,4 +364,16 @@ mod tests {
         assert!(block.has_valid_work(INFINITE_WORK_DIFFICULTY));
         assert!(block.has_valid_signature());
     }
+
+    serde_test!(block_type_serde: BlockType::Receive => 4);
+    serde_test!(block_serde: Block {
+        block_type: BlockType::Receive,
+        account: get_genesis_account(),
+        previous: [19; 32],
+        representative: get_v2_epoch_signer(),
+        balance: ONE_NANO,
+        link: [91; 32],
+        signature: Signature::default(),
+        work: [22; 8]
+    } => 4 + 32 + 32 + 32 + 16 + 32 + 64 + 8);
 }

@@ -15,11 +15,11 @@ pub enum Notification {
 }
 impl Notification {
     pub(crate) fn create_v1(
-        notification_account: Account,
+        recipient: Account,
         representative_payload: Account,
     ) -> Notification {
         Notification::V1(NotificationV1 {
-            notification_account,
+            recipient,
             representative_payload,
         })
     }
@@ -37,17 +37,32 @@ pub struct NotificationV1 {
     /// **Make that sure that the sender's representative is set to `representative_payload`**.
     ///
     /// Note that this account is publically linked to the camo account.
-    pub notification_account: Account,
+    pub recipient: Account,
     /// In the block sending to `notification_account`, make that sure this is set as the representative.
     /// This is the "payload" of the notification block.
+    #[cfg_attr(feature = "serde", serde(rename = "payload"))]
     pub representative_payload: Account,
 }
 auto_from_impl!(From: Block => NotificationV1);
 impl From<&Block> for NotificationV1 {
     fn from(value: &Block) -> Self {
         NotificationV1 {
-            notification_account: value.account.clone(),
+            recipient: value.account.clone(),
             representative_payload: value.representative.clone(),
         }
     }
+}
+
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod tests {
+    use super::*;
+    use crate::{constants::get_genesis_account, serde_test};
+
+    serde_test!(notification_v1_serde: NotificationV1 {
+        recipient: get_genesis_account(),
+        representative_payload: get_genesis_account()
+    } => 32 + 32);
+
+    serde_test!(notification_serde: Notification::create_v1(get_genesis_account(), get_genesis_account()) => 4 + 64);
 }

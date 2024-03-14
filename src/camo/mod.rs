@@ -323,7 +323,7 @@ pub(super) trait AutoTestUtils: Sized {
 }
 
 macro_rules! camo_address_tests {
-    ($keys: ident, $view_keys: ident, $account: ident, $versions: expr, $addr: expr) => {
+    ($keys: ident, $view_keys: ident => $vk_len: expr, $account: ident => $account_len: expr, $versions: expr, $addr: expr) => {
         impl AutoTestUtils for $keys {}
         impl AutoTestUtils for $account {}
 
@@ -331,6 +331,9 @@ macro_rules! camo_address_tests {
         mod tests {
             use super::*;
             use crate::versions;
+
+            #[cfg(feature = "serde")]
+            use crate::serde_test;
 
             #[test]
             fn camo_account() {
@@ -396,6 +399,9 @@ macro_rules! camo_address_tests {
 
                 assert!(sender_view_keys_1 == sender_view_keys_2);
             }
+
+            serde_test!(view_keys_serde: $keys::from_seed(&SecretBytes::from([24; 32]), 99, $versions).unwrap().to_view_keys() => $vk_len);
+            serde_test!(account_serde: $addr.parse::<$account>().unwrap() => $account_len);
         }
     };
 }
@@ -404,7 +410,7 @@ pub(crate) use camo_address_tests;
 #[cfg(test)]
 use crate::constants::HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION;
 camo_address_tests!(
-    CamoKeys, CamoViewKeys, CamoAccount,
+    CamoKeys, CamoViewKeys => 4 + 65, CamoAccount => 4 + 65,
     versions!(HIGHEST_KNOWN_CAMO_PROTOCOL_VERSION),
     "camo_18wydi3gmaw4aefwhkijrjw4qd87i4tc85wbnij95gz4em3qssickhpoj9i4t6taqk46wdnie7aj8ijrjhtcdgsp3c1oqnahct3otygxx4k7f3o4"
 );

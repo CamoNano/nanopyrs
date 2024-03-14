@@ -41,6 +41,7 @@ pub struct AccountInfo {
     /// Balance of this account
     pub balance: u128,
     /// Timestamp of this account's last block
+    #[cfg_attr(feature = "serde", serde(rename = "timestamp"))]
     pub modified_timestamp: u64,
     /// Number of blocks in this account's history
     pub block_count: usize,
@@ -61,6 +62,7 @@ pub struct Receivable {
     /// The recipient account of this transaction
     pub recipient: Account,
     /// The hash of the send block on the sender's account
+    #[cfg_attr(feature = "serde", serde(rename = "hash"))]
     pub block_hash: [u8; 32],
     /// The amount being transferred
     pub amount: u128,
@@ -206,4 +208,49 @@ impl Rpc {
             .await
             .result
     }
+}
+
+#[cfg(test)]
+#[cfg(feature = "serde")]
+mod tests {
+    use super::*;
+    use crate::{
+        constants::get_genesis_account,
+        constants::{ONE_NANO, USIZE_LEN},
+        serde_test, Block, BlockType, Signature,
+    };
+
+    serde_test!(block_info_serde: BlockInfo {
+        height: 939,
+        timestamp: 3902193,
+        confirmed: true,
+        block: Block {
+            block_type: BlockType::Receive,
+            account: get_genesis_account(),
+            previous: [19; 32],
+            representative: get_genesis_account(),
+            balance: ONE_NANO,
+            link: [91; 32],
+            signature: Signature::default(),
+            work: [22; 8]
+        }
+    } => USIZE_LEN + 8 + 1 + 220);
+
+    serde_test!(account_info_serde: AccountInfo {
+        frontier: [92; 32],
+        open_block: [192; 32],
+        balance: 89823892,
+        modified_timestamp: 8932,
+        block_count: 483928329,
+        version: 2,
+        representative: get_genesis_account(),
+        weight: 8439483,
+        receivable: 100
+    } => 32 + 32 + 16 + 8 + USIZE_LEN + USIZE_LEN + 32 + 16 + USIZE_LEN);
+
+    serde_test!(receivable_serde: Receivable {
+        recipient: get_genesis_account(),
+        block_hash: [51; 32],
+        amount: 432894284243
+    } => 32 + 32 + 16);
 }

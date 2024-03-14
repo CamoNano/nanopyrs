@@ -58,6 +58,9 @@ impl TryFrom<&[u8; 64]> for Signature {
 mod tests {
     use crate::{Key, SecretBytes};
 
+    #[cfg(feature = "serde")]
+    use crate::{serde_test, Signature};
+
     fn get_key(seed: [u8; 32], i: u32) -> Key {
         let seed = SecretBytes::from(seed);
         Key::from_seed(&seed, i)
@@ -96,4 +99,6 @@ mod tests {
         assert!(signature_1.r != signature_2.r);
         assert!(signature_1.s != signature_2.s);
     }
+
+    serde_test!(signature_serde: Signature::default() => 32 + 32);
 }

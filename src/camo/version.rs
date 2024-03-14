@@ -392,11 +392,11 @@ mod serde_tests {
     use crate::serde_test;
 
     #[test]
-    fn camo_version_serde() {
+    fn camo_version() {
         let bytes = bincode::serialize(&CamoVersion::Two).unwrap();
         assert!(bytes.len() == 1);
         let version: CamoVersion = bincode::deserialize(&bytes).unwrap();
         assert!(CamoVersion::Two == version);
     }
-    serde_test!(camo_versions_serde: CamoVersions::new_signaling(&[CamoVersion::Two, CamoVersion::Seven]) => 1);
+    serde_test!(camo_versions: CamoVersions::new_signaling(&[CamoVersion::Two, CamoVersion::Seven]) => 1);
 }

@@ -14,10 +14,7 @@ pub enum Notification {
     V1(NotificationV1) = 1,
 }
 impl Notification {
-    pub(crate) fn create_v1(
-        recipient: Account,
-        representative_payload: Account,
-    ) -> Notification {
+    pub(crate) fn create_v1(recipient: Account, representative_payload: Account) -> Notification {
         Notification::V1(NotificationV1 {
             recipient,
             representative_payload,

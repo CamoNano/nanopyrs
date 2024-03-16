@@ -18,7 +18,7 @@ pub fn account_history(
 ) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "account_history".into());
-    arguments.insert("raw".into(), "true".into());
+    arguments.insert("raw".into(), true.into());
     arguments.insert("account".into(), account.into());
     arguments.insert("count".into(), count.to_string().into());
     if let Some(head) = head {
@@ -34,9 +34,9 @@ pub fn account_info(account: &Account) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "account_info".into());
     arguments.insert("account".into(), account.into());
-    arguments.insert("representative".into(), "true".into());
-    arguments.insert("weight".into(), "true".into());
-    arguments.insert("receivable".into(), "true".into());
+    arguments.insert("representative".into(), true.into());
+    arguments.insert("weight".into(), true.into());
+    arguments.insert("receivable".into(), true.into());
     JsonValue::Object(arguments)
 }
 
@@ -63,7 +63,7 @@ pub fn accounts_receivable(accounts: &[Account], count: usize, threshold: u128) 
 
     let mut arguments = Map::new();
     arguments.insert("action".into(), "accounts_receivable".into());
-    arguments.insert("sorting".into(), "true".into());
+    arguments.insert("sorting".into(), true.into());
     arguments.insert("threshold".into(), threshold.to_string().into());
     arguments.insert("accounts".into(), accounts.as_slice().into());
     arguments.insert("count".into(), count.to_string().into());
@@ -83,7 +83,7 @@ pub fn block_info(hash: [u8; 32]) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "block_info".into());
     arguments.insert("hash".into(), to_uppercase_hex(&hash).into());
-    arguments.insert("json_block".into(), "true".into());
+    arguments.insert("json_block".into(), true.into());
     JsonValue::Object(arguments)
 }
 
@@ -93,8 +93,8 @@ pub fn blocks_info(hashes: &[[u8; 32]]) -> JsonValue {
     let mut arguments = Map::new();
     arguments.insert("action".into(), "blocks_info".into());
     arguments.insert("hashes".into(), hashes.as_slice().into());
-    arguments.insert("json_block".into(), "true".into());
-    arguments.insert("include_not_found".into(), "true".into());
+    arguments.insert("json_block".into(), true.into());
+    arguments.insert("include_not_found".into(), true.into());
     JsonValue::Object(arguments)
 }
 
@@ -103,7 +103,7 @@ pub fn process(block: &Block) -> JsonValue {
     arguments.insert("action".into(), "process".into());
     arguments.insert("subtype".into(), block.block_type.to_string().into());
     arguments.insert("block".into(), JsonValue::Object(block_to_json(block)));
-    arguments.insert("json_block".into(), "true".into());
+    arguments.insert("json_block".into(), true.into());
     JsonValue::Object(arguments)
 }
 
@@ -111,7 +111,7 @@ pub fn work_generate(work_hash: [u8; 32], custom_difficulty: Option<[u8; 8]>) ->
     let mut arguments = Map::new();
     arguments.insert("action".into(), "work_generate".into());
     arguments.insert("hash".into(), to_uppercase_hex(&work_hash).into());
-    arguments.insert("use_peers".into(), "true".into());
+    arguments.insert("use_peers".into(), true.into());
     if let Some(difficulty) = custom_difficulty {
         arguments.insert("difficulty".into(), hex::encode(difficulty).into());
     }
@@ -150,7 +150,7 @@ mod tests {
                 "account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
                 "count": "3",
                 "offset": "8",
-                "raw": "true"
+                "raw": true
             })
         );
 
@@ -161,7 +161,7 @@ mod tests {
                 "account": "nano_1ipx847tk8o46pwxt5qjdbncjqcbwcc1rrmqnkztrfjy5k7z4imsrata9est",
                 "head": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                 "count": "4",
-                "raw": "true"
+                "raw": true
             })
         )
     }
@@ -177,9 +177,9 @@ mod tests {
             json == json!({
                 "action": "account_info",
                 "account": "nano_1gyeqc6u5j3oaxbe5qy1hyz3q745a318kh8h9ocnpan7fuxnq85cxqboapu5",
-                "representative": "true",
-                "weight": "true",
-                "receivable": "true"
+                "representative": true,
+                "weight": true,
+                "receivable": true
             })
         );
     }
@@ -239,7 +239,7 @@ mod tests {
                 "accounts": ["nano_1111111111111111111111111111111111111111111111111117353trpda", "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"],
                 "count": "9",
                 "threshold": "1000000000000000000000000",
-                "sorting": "true"
+                "sorting": true
             })
         )
     }
@@ -273,7 +273,7 @@ mod tests {
         assert!(
             json == json!({
                 "action": "block_info",
-                "json_block": "true",
+                "json_block": true,
                 "hash": "87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9"
             })
         )
@@ -292,9 +292,9 @@ mod tests {
         assert!(
             json == json!({
                 "action": "blocks_info",
-                "json_block": "true",
+                "json_block": true,
                 "hashes": ["87434F8041869A01C8F6F263B87972D7BA443A72E0A97D7A3FD0CCC2358FD6F9"],
-                "include_not_found": "true"
+                "include_not_found": true
             })
         )
     }
@@ -328,7 +328,7 @@ mod tests {
         assert!(
             json == json!({
                 "action": "process",
-                "json_block": "true",
+                "json_block": true,
                 "subtype": "send",
                 "block": {
                     "type": "state",
@@ -355,7 +355,7 @@ mod tests {
             json == json!({
                 "action": "work_generate",
                 "hash": "718CC2121C3E641059BC1C2CFC45666C99E8AE922F7A807B7D07B62C995D79E2",
-                "use_peers": "true"
+                "use_peers": true
             })
         );
 
@@ -369,7 +369,7 @@ mod tests {
                 "action": "work_generate",
                 "hash": "718CC2121C3E641059BC1C2CFC45666C99E8AE922F7A807B7D07B62C995D79E2",
                 "difficulty": "ffffffffffffffff",
-                "use_peers": "true"
+                "use_peers": true
             })
         )
     }

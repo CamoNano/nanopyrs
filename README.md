@@ -23,9 +23,11 @@ Currently, only the following commands are officially supported: `account_balanc
 Camo Nano functionality is enabled by the `camo` feature, which is **disabled by default**.
 
 Note that Camo Nano is a **custom, experimental, and non-standard feature** of this library, and is generally not supported by wallets or the wider Nano ecosystem.
-See the `CAMO-PROTOCOL.md` file for details on the Camo Nano protocol.
 
-Version one of the Camo Nano protocol should not be considered finalized until version `1.0.0`.
+See the `CAMO-PROTOCOL.md` file for details on the Camo Nano protocol.
+When using this library to implement a Camo Nano wallet, make sure to abide by the protocol standards, particularly the minimum-send requirements.
+
+While not likely to significantly change, version one of the Camo Nano protocol should not be considered finalized until version `1.0.0`.
 
 ### Serde
 

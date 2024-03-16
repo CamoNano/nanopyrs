@@ -219,9 +219,8 @@ impl Rpc {
 mod serde_tests {
     use super::*;
     use crate::{
-        constants::get_genesis_account,
-        constants::ONE_NANO,
-        serde_test, Block, BlockType, Signature,
+        constants::get_genesis_account, constants::ONE_NANO, serde_test, Block, BlockType,
+        Signature,
     };
 
     serde_test!(block_info: BlockInfo {

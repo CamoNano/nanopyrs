@@ -158,6 +158,10 @@ pub fn blocks_info(
     raw_json: JsonValue,
     hashes: &[[u8; 32]],
 ) -> Result<Vec<Option<BlockInfo>>, RpcError> {
+    if !raw_json["error"].is_null() && raw_json["blocks"].is_null() {
+        return Err(RpcError::InvalidJsonDataType);
+    }
+
     let mut infos = vec![];
     for hash in hashes {
         let json_block = &raw_json["blocks"][to_uppercase_hex(hash)];

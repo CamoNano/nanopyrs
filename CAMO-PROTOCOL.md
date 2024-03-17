@@ -129,7 +129,7 @@ This system is capable of sending to camo accounts through wallet software which
  * To send a camo payment, create a transaction sending coins to $K_{masked}$.
  * To send a notification, create a transaction sending a small number of coins to $K_{spend}$, with the "representative" field set to $R$.
 
- When dealing with notifications, care must be taken to ensure that all coins are accounted for. Well-designed wallet software should consider the following:
+ When dealing with notifications, care must be taken to ensure that all coins are accounted for. For example, well-designed wallet software should consider the following:
  * Camo payments may take longer to confirm than notifications, so it may temporarily appear that a notification has no associated camo payment. Handle "unlinked" notifications carefully, and do not immediately ignore them.
  * A "rescan" feature should be provided to allow users to rescan the notifications they've received, so that mishandled payments, and coins in restore-from-seed wallets, can be recovered.
  * "Notifier" and "sender" accounts should be chosen wisely. The easy solution is to use one account for both, but that harms privacy. Users should be able to make tradeoffs between privacy, ease-of-use, and user-control, through settings with sane defaults.

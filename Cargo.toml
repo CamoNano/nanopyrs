@@ -4,8 +4,8 @@ version = "0.4.0"
 edition = "2021"
 description = "Rust rewrite of the Python nanopy library"
 license = "MIT"
-homepage = "https://github.com/expiredhotdog/nanopyrs"
-repository = "https://github.com/expiredhotdog/nanopyrs"
+homepage = "https://github.com/CamoNano/nanopyrs"
+repository = "https://github.com/CamoNano/nanopyrs"
 readme = "README.md"
 keywords = ["cryptocurrency", "nanocurrency", "nano"]
 

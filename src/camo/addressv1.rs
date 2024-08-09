@@ -1,6 +1,6 @@
-use super::{
-    camo_address_tests, AutoTestUtils, CamoVersion, CamoVersions, Notification, CAMO_PREFIX_LEN,
-};
+#[cfg(test)]
+use super::AutoTestUtils;
+use super::{camo_address_tests, CamoVersion, CamoVersions, Notification, CAMO_PREFIX_LEN};
 use crate::{
     auto_from_impl, base32,
     hashes::{

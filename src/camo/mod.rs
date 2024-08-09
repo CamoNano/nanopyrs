@@ -316,6 +316,7 @@ mod protocol_docs_tests {
     }
 }
 
+#[cfg(test)]
 pub(super) trait AutoTestUtils: Sized {
     fn unwrap(self) -> Self {
         self
@@ -324,7 +325,9 @@ pub(super) trait AutoTestUtils: Sized {
 
 macro_rules! camo_address_tests {
     ($keys: ident, $view_keys: ident => $vk_len: expr, $account: ident => $account_len: expr, $versions: expr, $addr: expr) => {
+        #[cfg(test)]
         impl AutoTestUtils for $keys {}
+        #[cfg(test)]
         impl AutoTestUtils for $account {}
 
         #[cfg(test)]

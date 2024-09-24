@@ -1,8 +1,8 @@
 use super::{encode, error::RpcError, parse, AccountInfo, BlockInfo, Receivable};
 use crate::{Account, Block};
 
+use gloo_net::http::Request;
 use json::{Map, Value as JsonValue};
-use reqwest::{ClientBuilder, RequestBuilder};
 use serde_json as json;
 
 macro_rules! request {
@@ -38,22 +38,17 @@ impl<T> Response<T> {
 }
 
 /// See the official [Nano RPC documentation](https://docs.nano.org/commands/rpc-protocol/) for details.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DebugRpc {
-    builder: RequestBuilder,
     url: String,
     proxy: Option<String>,
 }
 impl DebugRpc {
     pub fn new(url: &str, proxy: impl Into<Option<String>>) -> Result<DebugRpc, RpcError> {
         let rpc = DebugRpc {
-            builder: ClientBuilder::new().build()?.post(url),
             url: url.into(),
             proxy: proxy.into(),
         };
-        if rpc.try_clone().is_none() {
-            return Err(RpcError::InvalidRPC);
-        }
         Ok(rpc)
     }
 
@@ -69,28 +64,28 @@ impl DebugRpc {
 
     /// Same as `command`, but *everything* must be set manually
     pub async fn _raw_request(&self, json: JsonValue) -> Response<JsonValue> {
-        let response_json = self
-            .clone()
-            .builder
-            .json(&json)
-            .send()
-            .await
-            .map_err(RpcError::ReqwestError)
-            .map(|response| response.json::<JsonValue>());
-
-        let result = match response_json {
-            Ok(response) => response.await.map_err(RpcError::ReqwestError),
-            Err(err) => Err(err),
+        let request = match Request::post(&self.url).json(&json){
+            Ok(req) => req.send(),
+            Err(err) => return {
+                Response {
+                    raw_request: Some(json),
+                    raw_response: None,
+                    result: Err(err.into())
+                }
+            }
         };
 
-        let raw_response = match &result {
-            Ok(json) => Some(json.clone()),
-            Err(_) => None,
+        let result = match request.await {
+            Ok(response) => response
+                .json::<JsonValue>()
+                .await
+                .map_err(RpcError::GlooNetError),
+            Err(err) => Err(RpcError::GlooNetError(err)),
         };
 
         Response {
             raw_request: Some(json),
-            raw_response,
+            raw_response: result.as_ref().ok().cloned(),
             result,
         }
     }
@@ -276,18 +271,5 @@ impl DebugRpc {
             Err(err) => Err(err),
         };
         map_response!(response, result)
-    }
-
-    fn try_clone(&self) -> Option<DebugRpc> {
-        Some(DebugRpc {
-            builder: self.builder.try_clone()?,
-            url: self.url.clone(),
-            proxy: self.proxy.clone(),
-        })
-    }
-}
-impl Clone for DebugRpc {
-    fn clone(&self) -> Self {
-        self.try_clone().unwrap()
     }
 }

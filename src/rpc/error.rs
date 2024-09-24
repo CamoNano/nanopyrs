@@ -1,6 +1,6 @@
+use gloo_net::Error as GlooNetError;
 use hex::FromHexError;
 use json::Error as JsonError;
-use reqwest::Error as ReqwestError;
 use serde_json as json;
 use thiserror::Error;
 
@@ -10,7 +10,7 @@ pub enum RpcError {
     #[error("could not create RPC: possibly invalid URL")]
     InvalidRPC,
     #[error(transparent)]
-    ReqwestError(#[from] ReqwestError),
+    GlooNetError(#[from] GlooNetError),
     /// Error while parsing json
     #[error(transparent)]
     JsonError(#[from] JsonError),

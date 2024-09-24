@@ -18,7 +18,8 @@ auto_ops = "0.3.0"
 
 thiserror = { version = "1.0.49", optional = true }
 hex = { version = "0.4.3", optional = true }
-reqwest = { version = "0.11.22", features = ["json"], optional = true }
+gloo-net = { version = "0.6.0", features = ["json"], optional = true }
+
 serde_json = { version = "1.0.107", optional = true }
 
 serde = { version = "1.0.196", features = ["derive"], optional = true }
@@ -31,7 +32,7 @@ bincode = "1.3.3"
 default = []
 all = ["camo", "rpc", "serde"]
 camo = []
-rpc = ["dep:thiserror", "dep:hex", "dep:reqwest", "dep:serde_json"]
+rpc = ["dep:thiserror", "dep:hex", "dep:gloo-net", "dep:serde_json"]
 serde = ["dep:serde", "dep:serde_arrays", "curve25519-dalek/serde"]
 
 [package.metadata.docs.rs]

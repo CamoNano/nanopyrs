@@ -27,8 +27,6 @@ Note that Camo Nano is a **custom, experimental, and non-standard feature** of t
 See the `CAMO-PROTOCOL.md` file for details on the Camo Nano protocol.
 When using this library to implement a Camo Nano wallet, make sure to abide by the protocol standards, particularly the minimum-send requirements.
 
-While not likely to significantly change, version one of the Camo Nano protocol should not be considered finalized until version `1.0.0`.
-
 ### Serde
 
 [Serde](https://docs.rs/serde/latest/serde/) support is enabled by the `serde` feature, which is **disabled by default**.
@@ -39,7 +37,7 @@ Maybe, but the name "nanors" was taken :(
 
 ## Licensing
 
-This crate is open source and licensed under the MIT license. See the `LICENSE` file for more details.
+This crate is open source and licensed under the MIT license. See the [`LICENSE`](LICENSE) file for more details.
 
 ## Credits
 

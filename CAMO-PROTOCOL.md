@@ -116,10 +116,7 @@ For each notification, extract $R$, and let:
 
 Check the Nano account with keypair $(k_{masked}, K_{masked})$ for incoming payments, and receive them.
 
-### Notes
-$r$ does not necessarily have to be calculated in this way. All that matters is that it is secret, and unique to every camo payment. However, using a standard pseudo-random algorithm is useful if $r$ ever needs to be recovered by the sender.
-
-The calculated $Q$ value is the same between the sender and recipient, since $Q = K_{view} \cdot r = k_{view} \cdot R = k_{view} \cdot r \cdot G$. Since calculating $K_{masked}$ requires knowledge of $Q$, which itself requires knowledge of either $r$ or $k_{view}$, no outside observer can calculate $K_{masked}$.
+## Notes
 
 The sender can send a notification to the recipient at any point during or after the camo payment, and even send duplicate notifications, as long as the sender knows $R$.
 
@@ -129,7 +126,17 @@ This system is capable of sending to camo accounts through wallet software which
  * To send a camo payment, create a transaction sending coins to $K_{masked}$.
  * To send a notification, create a transaction sending a small number of coins to $K_{spend}$, with the "representative" field set to $R$.
 
- When dealing with notifications, care must be taken to ensure that all coins are accounted for. For example, well-designed wallet software should consider the following:
+When dealing with notifications, care must be taken to ensure that all coins are accounted for. For example, well-designed wallet software should consider the following:
  * Camo payments may take longer to confirm than notifications, so it may temporarily appear that a notification has no associated camo payment. Handle "unlinked" notifications carefully, and do not immediately ignore them.
  * A "rescan" feature should be provided to allow users to rescan the notifications they've received, so that mishandled payments, and coins in restore-from-seed wallets, can be recovered.
  * "Notifier" and "sender" accounts should be chosen wisely. The easy solution is to use one account for both, but that harms privacy. Users should be able to make tradeoffs between privacy, ease-of-use, and user-control, through settings with sane defaults.
+
+### Security
+
+$r$ does not necessarily have to be calculated in this way. All that matters is that it is secret, and unique to every camo payment. However, using a standard pseudo-random algorithm is useful if $r$ ever needs to be recovered by the sender.
+
+The calculated $Q$ value is the same between the sender and recipient, since $Q = K_{view} \cdot r = k_{view} \cdot R = k_{view} \cdot r \cdot G$. Since calculating $K_{masked}$ requires knowledge of $Q$, which itself requires knowledge of either $r$ or $k_{view}$, no outside observer can calculate $K_{masked}$.
+
+As a standard practice, implementations should ensure canonical encodings of curve points and other transmitted data. Failure to do so could conceivably lead to certain types of attacks.
+
+Camo Nano is *not* secure whatsoever against a quantum adversary (QA). In this context, a QA is defined as an actor who, given only $A$, can determine the $a$ such that $A = a \cdot G$. The Nano cryptocurrency is itself not secure from these attacks, and Camo inherits this vulnerability. A QA can *steal* coins from Camo and non-Camo addresses alike, although Camo has an added attack vector of deanonymization. Since $K_{view}$ is public, and $K_{view} = k_{view} \cdot G$, a QA can determine the private view key $k_{view}$ of any given Camo address, and use that knowledge to link all camo payments to that address. Future versions of the Camo protocol may adopt quantum-safe key exchanges in the future to at least prevent deanonymization attacks, although the author does not believe this is very feasible at the moment, based on technical limitations. Preventing theft attacks can only be done with a network-wide migration to quantum-safe signatures for Nano accounts, which is clearly out of scope for this protocol.

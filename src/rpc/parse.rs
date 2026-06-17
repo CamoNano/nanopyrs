@@ -436,14 +436,12 @@ mod tests {
                     }
                 }
             }),
-            &vec![
-                "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"
+            &["nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3"
                     .try_into()
                     .unwrap(),
                 "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7"
                     .try_into()
-                    .unwrap(),
-            ],
+                    .unwrap()],
         )
         .unwrap();
         assert!(balances[0] == 325586539664609129644855132177);
@@ -462,11 +460,9 @@ mod tests {
                     "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy": "Account not found"
                 }
             }),
-            &vec!(
-                "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap(),
+            &["nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap(),
                 "nano_3i1aq1cchnmbn9x5rsbap8b15akfh7wj7pwskuzi7ahz8oq6cobd99d4r3b7".try_into().unwrap(),
-                "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy".try_into().unwrap()
-            )
+                "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy".try_into().unwrap()]
         ).unwrap();
 
         let hash_1: [u8; 32] =
@@ -498,10 +494,8 @@ mod tests {
                     }
                 }
             }),
-            &vec!(
-                "nano_1111111111111111111111111111111111111111111111111117353trpda".try_into().unwrap(),
-                "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap()
-            )
+            &["nano_1111111111111111111111111111111111111111111111111117353trpda".try_into().unwrap(),
+                "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap()]
         ).unwrap();
 
         let hash_1: [u8; 32] =
@@ -560,11 +554,9 @@ mod tests {
                     "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy": "Account not found"
                 }
             }),
-            &vec!(
-                "nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5".try_into().unwrap(),
+            &["nano_16u1uufyoig8777y6r8iqjtrw8sg8maqrm36zzcm95jmbd9i9aj5i8abr8u5".try_into().unwrap(),
                 "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3".try_into().unwrap(),
-                "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy".try_into().unwrap()
-            )
+                "nano_1hrts7hcoozxccnffoq9hqhngnn9jz783usapejm57ejtqcyz9dpso1bibuy".try_into().unwrap()]
         ).unwrap();
 
         assert!(

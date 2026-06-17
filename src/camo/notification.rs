@@ -24,6 +24,12 @@ impl Notification {
     pub fn from_v1(block: &Block) -> Notification {
         Notification::V1(NotificationV1::from(block))
     }
+
+    pub fn is_canonical(&self) -> bool {
+        match self {
+            Notification::V1(v1) => v1.is_canonical(),
+        }
+    }
 }
 
 /// Version 1-style notification (currently the only implemented version).
@@ -40,6 +46,11 @@ pub struct NotificationV1 {
     #[cfg_attr(feature = "serde", serde(rename = "payload"))]
     pub representative_payload: Account,
 }
+impl NotificationV1 {
+    fn is_canonical(&self) -> bool {
+        self.representative_payload.point.is_torsion_free()
+    }
+}
 auto_from_impl!(From: Block => NotificationV1);
 impl From<&Block> for NotificationV1 {
     fn from(value: &Block) -> Self {
@@ -47,6 +58,35 @@ impl From<&Block> for NotificationV1 {
             recipient: value.account.clone(),
             representative_payload: value.representative.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use curve25519_dalek::constants::{ED25519_BASEPOINT_POINT as G, EIGHT_TORSION};
+    use curve25519_dalek::Scalar;
+
+    macro_rules! v1_with_payload {
+        ($payload: expr) => {
+            Notification::create_v1(Account::from(G), Account::from($payload)).is_canonical()
+        };
+    }
+
+    #[test]
+    fn canonical() {
+        assert!(v1_with_payload!(G * Scalar::from(900_u32)));
+        assert!(v1_with_payload!(G));
+        assert!(v1_with_payload!(G + EIGHT_TORSION[0]));
+    }
+
+    #[test]
+    fn non_canonical() {
+        assert!(!v1_with_payload!(
+            (G * Scalar::from(450_u32)) + EIGHT_TORSION[1]
+        ));
+        assert!(!v1_with_payload!(EIGHT_TORSION[5]));
+        assert!(!v1_with_payload!(G + EIGHT_TORSION[6]));
     }
 }
 
